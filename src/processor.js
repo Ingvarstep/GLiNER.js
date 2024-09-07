@@ -190,10 +190,20 @@ export class SpanProcessor extends Processor {
 
         let { spanIdxs, spanMasks } = this.prepareSpans(batchTokens, this.config["max_width"]);
 
-        spanIdxs = this.padArray(spanIdxs);
+        spanIdxs = this.padArray(spanIdxs, 3);
         spanMasks = this.padArray(spanMasks);
 
-        return { inputsIds, attentionMasks, wordsMasks, spanIdxs, spanMasks };
+        return {
+            inputsIds: inputsIds,
+            attentionMasks: attentionMasks,
+            wordsMasks: wordsMasks,
+            textLengths: textLengths,
+            spanIdxs: spanIdxs,
+            spanMasks: spanMasks,
+            idToClass: idToClass,
+            batchTokens: batchTokens,
+            batchWordsStartIdx: batchWordsStartIdx,
+            batchWordsEndIdx: batchWordsEndIdx, 
+        };
     }
-
 }

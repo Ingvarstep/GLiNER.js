@@ -77,19 +77,24 @@ class BaseDecoder {
 
 // SpanDecoder subclass
 class SpanDecoder extends BaseDecoder {
-    decode(tokens, idToClasses, modelOutput, flatNer = false, threshold = 0.5, multiLabel = false) {
+    decode(tokens, batchWordsStartIdx, batchWordsEndIdx, idToClasses, 
+                modelOutput, flatNer = false, threshold = 0.5, multiLabel = false) {
         const spans = [];
 
         tokens.forEach((currTokens, i) => {
             const outputI = modelOutput[i];
             const resI = [];
             
+            let WordsStartIdx = batchWordsStartIdx[i];
+            let WordsEndIdx = batchWordsEndIdx[i];
+
             outputI.forEach((tokensI, s)=> {
                 tokensI.forEach((spanI, k) => {
                     spanI.forEach((classI, c)=> {
                         let prob = sigmoid(classI);
                         if (prob>=threshold) {
-                            resI.push([s, s + k, idToClasses[c + 1], prob]);
+                            resI.push([WordsStartIdx[s], WordsEndIdx[s + k], 
+                                                    idToClasses[c + 1], prob]);
                         }
                     });
                 });
