@@ -1,12 +1,21 @@
+// const ort = require('onnxruntime-web');
+const ort = require('onnxruntime-node');
+
 export class Model {
     constructor(config, processor, decoder, modelPath = './model.onnx') {
         this.config = config;
         this.processor = processor;
         this.decoder = decoder;
-
-        this.session = ort.InferenceSession.create(modelPath);
-    }
-
+        this.modelPath = modelPath;
+        this.session = null;
+      }
+    
+      async initialize() {
+        if (!this.session) {
+          this.session = await ort.InferenceSession.create(this.modelPath);
+        }
+      }
+    
     prepareInputs(batch) {    
         const batch_size = batch.inputsIds.length;
         const num_tokens = batch.inputsIds[0].length;
@@ -65,16 +74,16 @@ export class Model {
         return feeds;
     }
 
-    inference(texts, entities, flatNer = false, threshold = 0.5, multiLabel = false) {
-        let batch = processor.prepareBatch(texts, entities);
+    async inference(texts, entities, flatNer = false, threshold = 0.5, multiLabel = false) {
+        let batch = this.processor.prepareBatch(texts, entities);
 
-        let feeds = prepareInputs(batch);
+        let feeds = this.prepareInputs(batch);
 
-        const results = session.run(feeds);
+        const results = await this.session.run(feeds);
 
         const modelOutput = results.logits.data;
 
-        const decodedSpans = spanDecoder.decode(tokens, idToClasses, modelOutput, 
+        const decodedSpans = this.decoder.decode(tokens, idToClasses, modelOutput, 
                                                 flatNer, threshold, multiLabel);
         
         

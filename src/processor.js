@@ -89,7 +89,7 @@ export class Processor {
         for (let id = 0; id < texts.length; id++) {
             let promptLength = promptLengths ? promptLengths[id] : 0;
             let tokenizedInputs = texts[id];
-            let wordsMask = [];        
+            let wordsMask = [0];        
             let inputIds = [1];
             let attentionMask = [1];
 

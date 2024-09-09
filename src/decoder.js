@@ -76,7 +76,7 @@ class BaseDecoder {
 }
 
 // SpanDecoder subclass
-class SpanDecoder extends BaseDecoder {
+export class SpanDecoder extends BaseDecoder {
     decode(tokens, batchWordsStartIdx, batchWordsEndIdx, idToClasses, 
                 modelOutput, flatNer = false, threshold = 0.5, multiLabel = false) {
         const spans = [];
