@@ -68,8 +68,7 @@ export class Processor {
             textLengths.push(text.length);  // Corrected typo 'textLengths'
 
             let inputText = [];
-            let entities_ = Array.isArray(entities) ? entities[id] : entities;
-            for (let ent of entities_) {
+            for (let ent of entities) {
                 inputText.push("<<ENT>>");
                 inputText.push(ent);
             }
@@ -147,33 +146,32 @@ export class SpanProcessor extends Processor {
     prepareSpans(batchTokens, maxWidth = 12) {
         let spanIdxs = [];
         let spanMasks = [];
-
-        batchTokens.forEach((tokens)=> {
-            let textLength = tokens.length;
-            let spanIdx = [];  // to store span indices (start, end)
-            let spanMask = []; // to store masks for valid spans
-        
-            for (let i = 0; i < textLength; i++) {
-                for (let j = 1; j <= maxWidth; j++) {
-                    let endIdx = i + j;
-                    // Check if the end index exceeds the token length
-                    if (endIdx <= textLength) {
-                        // Valid span (i, i+j)
-                        spanIdx.push([i, endIdx]);
-                        spanMask.push(1);  // Valid span, no mask
-                    } else {
-                        // Invalid span
-                        spanIdx.push([i, textLength]); // Truncate the span to the end of the tokens
-                        spanMask.push(0);  // Invalid span, apply mask
-                    }
-                }
+      
+        batchTokens.forEach((tokens) => {
+          let textLength = tokens.length;
+          let spanIdx = [];
+          let spanMask = [];
+      
+          for (let i = 0; i < textLength; i++) {
+            for (let j = 1; j <= maxWidth; j++) {
+              let endIdx = Math.min(i + j, textLength-1);
+              spanIdx.push([i, endIdx]);
+              spanMask.push(endIdx <= textLength ? 1 : 0);
             }
-            spanIdxs.push(spanIdx);
-            spanMasks.push(spanMask);
-        })        
-    
+          }
+          // Pad spans if necessary
+          const requiredSpans = textLength * maxWidth;
+          while (spanIdx.length < requiredSpans) {
+            spanIdx.push([textLength - 1, textLength]);
+            spanMask.push(0);
+          }
+      
+          spanIdxs.push(spanIdx);
+          spanMasks.push(spanMask);
+        });
+      
         return { spanIdxs, spanMasks };
-    }
+      }      
 
     prepareBatch(texts, entities) {
         const [batchTokens, batchWordsStartIdx, batchWordsEndIdx] = this.batchTokenizeText(texts);

@@ -33,7 +33,7 @@ async function main() {
   const texts = [input_text1, input_text2, input_text3];
   const entities = ["city", "country", "river", "person", "car"];
 
-  const threshold = 0.3;
+  const threshold = 0.1;
   try {
     const decoded = await model.inference(texts, entities, false, threshold);
     console.log(decoded);

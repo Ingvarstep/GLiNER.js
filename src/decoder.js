@@ -77,31 +77,37 @@ class BaseDecoder {
 
 // SpanDecoder subclass
 export class SpanDecoder extends BaseDecoder {
-    decode(tokens, batchWordsStartIdx, batchWordsEndIdx, idToClasses, 
+    decode(batchSize, inputLength, maxWidth, numEntities, 
+                batchWordsStartIdx, batchWordsEndIdx, idToClass, 
                 modelOutput, flatNer = false, threshold = 0.5, multiLabel = false) {
         const spans = [];
+        
+        for (let batch = 0; batch<batchSize; batch++ ) {
+            spans.push([]);
+        }
 
-        tokens.forEach((currTokens, i) => {
-            const outputI = modelOutput[i];
-            const resI = [];
+        const batchPadding = inputLength*maxWidth*numEntities;
+        const startTokenPadding = maxWidth*numEntities;
+        const endTokenPadding = numEntities*1;
+        
+        modelOutput.forEach((value, id) => {
+            let batch = Math.floor(id/batchPadding);
+            let startToken = Math.floor(id/startTokenPadding)%inputLength;
+            let endToken = startToken + Math.floor(id/endTokenPadding)%maxWidth;
+            let entity = id%numEntities;
+
+            let prob = sigmoid(value);
             
-            let WordsStartIdx = batchWordsStartIdx[i];
-            let WordsEndIdx = batchWordsEndIdx[i];
-
-            outputI.forEach((tokensI, s)=> {
-                tokensI.forEach((spanI, k) => {
-                    spanI.forEach((classI, c)=> {
-                        let prob = sigmoid(classI);
-                        if (prob>=threshold) {
-                            resI.push([WordsStartIdx[s], WordsEndIdx[s + k], 
-                                                    idToClasses[c + 1], prob]);
-                        }
-                    });
-                });
-            });
-
+            if (prob>=threshold && startToken<batchWordsStartIdx[batch].length && endToken<batchWordsEndIdx[batch].length) {
+                spans[batch].push([batchWordsStartIdx[batch][startToken], batchWordsEndIdx[batch][endToken], 
+                                        idToClass[entity + 1], prob]);
+            }
+        });
+        const allSelectedSpans = [];
+        
+        spans.forEach((resI, id) => {
             const selectedSpans = this.greedySearch(resI, flatNer, multiLabel);
-            spans.push(selectedSpans);
+            allSelectedSpans.push(selectedSpans);
         });
 
         return spans;

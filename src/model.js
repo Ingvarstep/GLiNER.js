@@ -113,15 +113,23 @@ export class Model {
 
     let feeds = this.prepareInputs(batch);
 
-    console.log(feeds);
-
     const results = await this.session.run(feeds);
-
+    
     const modelOutput = results.logits.data;
 
+    const batchSize = batch.batchTokens.length;
+    const inputLength = Math.max(...batch.textLengths);
+    const maxWidth = this.config.max_width;
+    const numEntities = entities.length;
+
     const decodedSpans = this.decoder.decode(
-      tokens,
-      idToClasses,
+      batchSize,
+      inputLength,
+      maxWidth,
+      numEntities,
+      batch.batchWordsStartIdx,
+      batch.batchWordsEndIdx,
+      batch.idToClass,
       modelOutput,
       flatNer,
       threshold,
