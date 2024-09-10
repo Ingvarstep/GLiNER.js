@@ -67,11 +67,7 @@ export class Model {
       [batch_size, num_tokens],
       convertToBool,
     );
-    let words_mask = createTensor(
-      batch.wordsMasks,
-      [batch_size, num_tokens],
-      convertToBool,
-    );
+    let words_mask = createTensor(batch.wordsMasks, [batch_size, num_tokens]);
     let text_lengths = createTensor(
       batch.textLengths,
       [batch_size, 1],
@@ -114,7 +110,7 @@ export class Model {
     let feeds = this.prepareInputs(batch);
 
     const results = await this.session.run(feeds);
-    
+
     const modelOutput = results.logits.data;
 
     const batchSize = batch.batchTokens.length;
