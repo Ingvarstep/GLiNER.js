@@ -91,7 +91,8 @@ export class Processor {
             let wordsMask = [0];        
             let inputIds = [1];
             let attentionMask = [1];
-
+            
+            let c = 1;
             tokenizedInputs.forEach((word, wordId) => {
                 let wordTokens = this.tokenizer.encode(word).slice(1, -1);  // Use this.tokenizer
                 wordTokens.forEach((token, tokenId) => {
@@ -100,7 +101,8 @@ export class Processor {
                         wordsMask.push(0);
                     }
                     else if (tokenId === 0) {
-                        wordsMask.push(1);
+                        wordsMask.push(c);
+                        c++
                     }
                     else {
                         wordsMask.push(0);
@@ -153,17 +155,11 @@ export class SpanProcessor extends Processor {
           let spanMask = [];
       
           for (let i = 0; i < textLength; i++) {
-            for (let j = 1; j <= maxWidth; j++) {
+            for (let j = 0; j < maxWidth; j++) {
               let endIdx = Math.min(i + j, textLength-1);
               spanIdx.push([i, endIdx]);
-              spanMask.push(endIdx <= textLength ? 1 : 0);
+              spanMask.push(endIdx < textLength ? 1 : 0);
             }
-          }
-          // Pad spans if necessary
-          const requiredSpans = textLength * maxWidth;
-          while (spanIdx.length < requiredSpans) {
-            spanIdx.push([textLength - 1, textLength]);
-            spanMask.push(0);
           }
       
           spanIdxs.push(spanIdx);
