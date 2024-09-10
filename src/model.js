@@ -1,5 +1,8 @@
-// const ort = require('onnxruntime-web');
-import ort from "onnxruntime-node";
+// CPU inference
+// import ort from "onnxruntime-web";
+
+// GPU inference
+import ort from "onnxruntime-web/webgpu";
 
 export class Model {
   constructor(config, processor, decoder, modelPath = "./model.onnx") {
@@ -12,7 +15,13 @@ export class Model {
 
   async initialize() {
     if (!this.session) {
-      this.session = await ort.InferenceSession.create(this.modelPath);
+      // CPU inference
+      // this.session = await ort.InferenceSession.create(this.modelPath);
+
+      // GPU inference
+      this.session = await ort.InferenceSession.create(this.modelPath, {
+        executionProviders: ["webgpu"],
+      });
     }
   }
 
@@ -67,11 +76,7 @@ export class Model {
       [batch_size, num_tokens],
       convertToBool,
     );
-    let words_mask = createTensor(
-      batch.wordsMasks,
-      [batch_size, num_tokens],
-      convertToBool,
-    );
+    let words_mask = createTensor(batch.wordsMasks, [batch_size, num_tokens]);
     let text_lengths = createTensor(
       batch.textLengths,
       [batch_size, 1],
@@ -114,7 +119,7 @@ export class Model {
     let feeds = this.prepareInputs(batch);
 
     const results = await this.session.run(feeds);
-    
+
     const modelOutput = results.logits.data;
 
     const batchSize = batch.batchTokens.length;
