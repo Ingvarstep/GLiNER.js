@@ -1,5 +1,8 @@
-// const ort = require('onnxruntime-web');
-import ort from "onnxruntime-node";
+// CPU inference
+// import ort from "onnxruntime-web";
+
+// GPU inference
+import ort from "onnxruntime-web/webgpu";
 
 export class Model {
   constructor(config, processor, decoder, modelPath = "./model.onnx") {
@@ -12,7 +15,13 @@ export class Model {
 
   async initialize() {
     if (!this.session) {
-      this.session = await ort.InferenceSession.create(this.modelPath);
+      // CPU inference
+      // this.session = await ort.InferenceSession.create(this.modelPath);
+
+      // GPU inference
+      this.session = await ort.InferenceSession.create(this.modelPath, {
+        executionProviders: ["webgpu"],
+      });
     }
   }
 
