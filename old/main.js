@@ -1,36 +1,41 @@
 import { AutoTokenizer, env } from "@xenova/transformers";
 env.allowLocalModels = false;
 env.useBrowserCache = false;
-import { Model } from "./model.js";
-import { WhitespaceTokenSplitter, SpanProcessor } from "./processor.js";
-import { SpanDecoder } from "./decoder.js";
+import { Model } from "../src/model.js";
+import { WhitespaceTokenSplitter, SpanProcessor } from "../src/processor.js";
+import { SpanDecoder } from "../src/decoder.js";
 
 // CPU inference
-// import * as ort from "onnxruntime-web";
+import * as ort from "onnxruntime-web";
 
 // GPU inference
-import * as ort from "onnxruntime-web/webgpu";
+// import * as ort from "onnxruntime-web/webgpu";
+
+ort.env.wasm.wasmPaths = "/";
+// ort.env.wasm.wasmPaths = {
+//   wasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240909-2cdc05f189/dist/ort-wasm-simd-threaded.mjs",
+//   mjs: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240909-2cdc05f189/dist/ort-wasm-simd-threaded.wasm",
+// };
 
 async function main() {
   // CPU inference *****************************************************************************************************
 
-  // // Get the number of logical CPU cores
-  // const maxThreads = navigator.hardwareConcurrency || 1; // Fallback to 1 if hardwareConcurrency is not available
+  // Get the number of logical CPU cores
+  const maxThreads = navigator.hardwareConcurrency || 1; // Fallback to 1 if hardwareConcurrency is not available
 
-  // console.log("Number of logical CPU cores: ", maxThreads);
-  // // Set the number of threads to the maximum available
-  // ort.env.wasm.numThreads = maxThreads;
+  console.log("Number of logical CPU cores: ", maxThreads);
+  // Set the number of threads to the maximum available
+  ort.env.wasm.numThreads = maxThreads;
 
   // ********************************************************************************************************************
 
   // GPU inference *****************************************************************************************************
   // ort.env.logLevel = "verbose";
-  ort.env.wasm.numThreads = 1;
-  ort.env.wasm.simd = true;
+  // ort.env.wasm.numThreads = 1;
+  // ort.env.wasm.simd = true;
   // ********************************************************************************************************************
 
   // Set the WebAssembly binary file path relative to the public directory
-  ort.env.wasm.wasmPaths = "/";
 
   const config = { max_width: 12 };
   // Load the tokenizer
