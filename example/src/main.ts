@@ -2,7 +2,6 @@
 import { Gliner } from "../../dist";
 
 async function main(): Promise<void> {
-
   const gliner = new Gliner({
     tokenizerPath: "onnx-community/gliner_small-v2",
     onnxSettings: {

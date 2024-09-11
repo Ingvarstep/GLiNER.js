@@ -4,15 +4,17 @@ import ortGPU from "onnxruntime-web/webgpu";
 export type ExecutionProvider = "cpu" | "webgpu";
 
 export interface IONNXSettings {
-  modelPath: string;
+  modelPath: string | Uint8Array;
   executionProvider: ExecutionProvider;
   wasmPaths?: string;
   multiThread?: boolean;
   maxThreads?: number;
+  fetchBinary?: boolean;
 }
 
 // NOTE: Version needs to match installed package!
-const DEFAULT_WASM_PATHS = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
+const ONNX_WASM_CDN_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
+const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
 export class ONNXWrapper {
   public ort: typeof import("onnxruntime-web") | typeof import("onnxruntime-web/webgpu") = ortCPU;
@@ -27,8 +29,15 @@ export class ONNXWrapper {
 
   public async init() {
     if (!this.session) {
-      const { modelPath, executionProvider } = this.settings;
+      const { modelPath, executionProvider, fetchBinary } = this.settings;
       if (executionProvider === "cpu") {
+        if (fetchBinary) {
+          const binaryURL = ONNX_WASM_CDN_URL + "ort-wasm-simd-threaded.wasm";
+          const response = await fetch(binaryURL)
+          const binary = await response.arrayBuffer();
+          this.ort.env.wasm.wasmBinary = binary;
+        }
+
         if (this.settings.multiThread) {
           const maxPossibleThreads = navigator.hardwareConcurrency ?? 1;
           const maxThreads = Math.min(this.settings.maxThreads ?? maxPossibleThreads, maxPossibleThreads);
@@ -42,6 +51,7 @@ export class ONNXWrapper {
         throw new Error(`ONNXWrapper: Invalid execution provider: ${executionProvider}`);
       }
 
+      // @ts-ignore
       this.session = await this.ort.InferenceSession.create(modelPath, {
         executionProviders: [executionProvider],
       });
