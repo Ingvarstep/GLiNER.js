@@ -1,8 +1,4 @@
-// CPU inference
-import ortCPU from "onnxruntime-web";
-import { InferenceSession } from "onnxruntime-web";
-
-// GPU inference
+import ortCPU, { InferenceSession } from "onnxruntime-web";
 import ortGPU from "onnxruntime-web/webgpu";
 
 export type ExecutionProvider = "cpu" | "webgpu";
@@ -13,8 +9,10 @@ export interface IONNXSettings {
   wasmPaths?: string;
   multiThread?: boolean;
   maxThreads?: number;
-
 }
+
+// NOTE: Version needs to match installed package!
+const DEFAULT_WASM_PATHS = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
 
 export class ONNXWrapper {
   public ort: typeof import("onnxruntime-web") | typeof import("onnxruntime-web/webgpu") = ortCPU;
@@ -24,7 +22,7 @@ export class ONNXWrapper {
     if (settings.executionProvider === "webgpu") {
       this.ort = ortGPU;
     }
-    this.ort.env.wasm.wasmPaths = settings.wasmPaths ?? "/";
+    this.ort.env.wasm.wasmPaths = settings.wasmPaths ?? DEFAULT_WASM_PATHS;
   }
 
   public async init() {
@@ -38,15 +36,15 @@ export class ONNXWrapper {
         } else {
           this.ort.env.wasm.numThreads = 1;
         }
-
-        this.session = await this.ort.InferenceSession.create(modelPath);
       } else if (executionProvider === "webgpu") {
         this.ort.env.wasm.numThreads = 1; // NOTE: not sure about this setting yet
-
-        this.session = await this.ort.InferenceSession.create(this.settings.modelPath, {
-          executionProviders: ["webgpu"],
-        });
+      } else {
+        throw new Error(`ONNXWrapper: Invalid execution provider: ${executionProvider}`);
       }
+
+      this.session = await this.ort.InferenceSession.create(modelPath, {
+        executionProviders: [executionProvider],
+      });
     }
   }
 

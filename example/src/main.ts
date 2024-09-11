@@ -1,51 +1,19 @@
-import { AutoTokenizer, env } from "@xenova/transformers";
-env.allowLocalModels = false;
-env.useBrowserCache = false;
-import { Model } from "./model";
-import { WhitespaceTokenSplitter, SpanProcessor } from "./processor";
-import { SpanDecoder } from "./decoder";
-
-// CPU inference
-import * as ort from "onnxruntime-web";
-
-// GPU inference
-// import * as ort from "onnxruntime-web/webgpu";
-
-ort.env.wasm.wasmPaths = "/";
-// ort.env.wasm.wasmPaths = {
-//   wasm: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240909-2cdc05f189/dist/ort-wasm-simd-threaded.mjs",
-//   mjs: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240909-2cdc05f189/dist/ort-wasm-simd-threaded.wasm",
-// };
+// import { Gliner } from "../../src";
+import { Gliner } from "../../dist";
 
 async function main(): Promise<void> {
-  // CPU inference *****************************************************************************************************
 
-  // Get the number of logical CPU cores
-  const maxThreads = navigator.hardwareConcurrency || 1; // Fallback to 1 if hardwareConcurrency is not available
-  console.log("Number of logical CPU cores: ", maxThreads);
+  const gliner = new Gliner({
+    tokenizerPath: "onnx-community/gliner_small-v2",
+    onnxSettings: {
+      modelPath: "public/model.onnx",
+      executionProvider: "cpu",
+      multiThread: true,
+    },
+    maxWidth: 12,
+  });
 
-  // Set the number of threads to the maximum available
-  ort.env.wasm.numThreads = maxThreads;
-
-  // Set the WebAssembly binary file path relative to the public directory
-
-  const config = { max_width: 12 };
-  // Load the tokenizer
-  const tokenizer = await AutoTokenizer.from_pretrained("onnx-community/gliner_small-v2");
-  console.log("Loaded tokenizer.");
-
-  const wordSplitter = new WhitespaceTokenSplitter();
-  const processor = new SpanProcessor(config, tokenizer, wordSplitter);
-  const decoder = new SpanDecoder(config);
-  const model = new Model(config, processor, decoder, "public/model.onnx");
-
-  try {
-    console.log("Initializing the model...");
-    await model.initialize();
-  } catch (error) {
-    console.error("Failed to initialize the model: ", error);
-    throw error;
-  }
+  await gliner.initialize();
 
   const input_text1 = `
     Write a white paper on the state of the financial market for Morar - Rice to share with potential investors.
@@ -77,14 +45,14 @@ async function main(): Promise<void> {
   try {
     const start = performance.now();
     console.log("Running inference #1...");
-    const decoded = await model.inference(texts, entities, false, threshold);
+    const decoded = await gliner.inference(texts, entities, threshold);
     console.log(decoded);
     const end = performance.now();
     console.log(`Inference #1 took ${end - start} ms`);
 
     const start2 = performance.now();
     console.log("Running inference #2...");
-    const decoded2 = await model.inference([input_text2], entities, false, threshold);
+    const decoded2 = await gliner.inference([input_text2], entities, threshold);
     const end2 = performance.now();
     console.log(`Inference #2 took ${end2 - start2} ms`);
     console.log(decoded2);

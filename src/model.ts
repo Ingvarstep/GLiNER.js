@@ -2,24 +2,15 @@ import ort from "onnxruntime-web";
 import { ONNXWrapper } from "./ONNXWrapper";
 
 export class Model {
-  config: any;
-  processor: any;
-  decoder: any;
-  modelPath: string;
-  session: ort.InferenceSession | null;
-
-  constructor(config: any, processor: any, decoder: any, modelPath: string = "./model.onnx") {
-    this.config = config;
-    this.processor = processor;
-    this.decoder = decoder;
-    this.modelPath = modelPath;
-    this.session = null;
-  }
+  constructor(
+    private config: any,
+    private processor: any,
+    private decoder: any,
+    private onnxWrapper: ONNXWrapper
+  ) { }
 
   async initialize(): Promise<void> {
-    if (!this.session) {
-      this.session = await ort.InferenceSession.create(this.modelPath);
-    }
+    await this.onnxWrapper.init()
   }
 
   prepareInputs(batch: any): Record<string, ort.Tensor> {
@@ -42,9 +33,6 @@ export class Model {
     };
 
     const convertSpanIdx = (arr: any[]): any[] => {
-
-
-
       return arr.flatMap((subArr) =>
         subArr.flatMap((pair: any) => pair.map((val: any) => (isNaN(Number(val)) ? 0 : Math.floor(Number(val)))))
       );
@@ -57,7 +45,7 @@ export class Model {
       tensorType: any = "int64"
     ): ort.Tensor => {
       const convertedData = conversionFunc(data);
-      return new ort.Tensor(tensorType, convertedData.flat(Infinity), shape);
+      return new this.onnxWrapper.ort.Tensor(tensorType, convertedData.flat(Infinity), shape);
     };
 
     let input_ids = createTensor(batch.inputsIds, [batch_size, num_tokens]);
@@ -88,7 +76,7 @@ export class Model {
   ): Promise<number[][][]> {
     let batch = this.processor.prepareBatch(texts, entities);
     let feeds = this.prepareInputs(batch);
-    const results = await this.session!.run(feeds);
+    const results = await this.onnxWrapper.run(feeds);
     const modelOutput = results.logits.data;
     // const modelOutput = results.logits.data as number[];
 

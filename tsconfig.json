@@ -24,6 +24,7 @@
     "old/main.js",
     "old/model.js",
     "old/processor.js",
-    "old/decoder.js"
+    "old/decoder.js",
+    "example/src/main.ts"
   ]
 }
