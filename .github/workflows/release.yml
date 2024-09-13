@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions: {} # reset permissions
+
+jobs:
+  release:
+    # Prevent the action from running on forks
+    if: github.repository == 'Ingvarstep/GLiNER.js'
+    permissions:
+      contents: write # Required to create the release
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 6.0.2
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Build the package
+        run: pnpm run build # Ensure you have a build script in your package.json
+
+      - name: Create a release archive
+        run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md # Archive the required files and folders
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.sha }} # Tag the release with the commit SHA
+          release_name: Release v${{ github.sha }}
+          draft: false # Set to true if you want to review the release before publishing
+          prerelease: true # Set to false for stable releases
+
+      - name: Upload release artifact
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./package-release.zip # Path to the zip file created above
+          asset_name: package-release.zip # Name of the uploaded artifact
+          asset_content_type: application/zip
+
+      # Uncomment the following steps to enable npm publishing when you're ready
+      # - name: Publish to npm
+      #   run: pnpm publish
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
