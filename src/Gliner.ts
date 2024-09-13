@@ -39,13 +39,7 @@ export class Gliner {
 
     this.model = new Model({ max_width: maxWidth }, processor, decoder, onnxWrapper);
 
-    try {
-      await this.model.initialize();
-      console.log("Model initialized.");
-    } catch (error) {
-      console.error("Model initialization failed:", error);
-      throw error;
-    }
+    await this.model.initialize();
   }
 
   async inference(texts: string[], entities: string[], threshold: number = 0.5, flatNer: boolean = false): Promise<any[]> {
@@ -53,12 +47,6 @@ export class Gliner {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
 
-    try {
-      const decoded = await this.model.inference(texts, entities, flatNer, threshold);
-      return decoded;
-    } catch (error) {
-      console.error("Inference failed:", error);
-      throw error;
-    }
+    return await this.model.inference(texts, entities, flatNer, threshold);
   }
 }

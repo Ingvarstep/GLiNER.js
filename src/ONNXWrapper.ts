@@ -1,7 +1,20 @@
-import ortCPU, { InferenceSession } from "onnxruntime-web";
-import ortGPU from "onnxruntime-web/webgpu";
+import ort_CPU, { InferenceSession } from "onnxruntime-web";
+import ort_WEBGPU from "onnxruntime-web/webgpu";
+import ort_WEBGL from "onnxruntime-web/webgl";
 
-export type ExecutionProvider = "cpu" | "webgpu";
+export type ExecutionProvider =
+  | "cpu"
+  | "wasm"
+  | "webgpu"
+  | "webgl"
+// | "coreml"
+// | "cuda"
+// | "dml"
+// | "nnapi"
+// | "tensorrt"
+// | "webnn"
+// | "qnn"
+// | "xnnpack"
 
 export interface IONNXSettings {
   modelPath: string | Uint8Array;
@@ -17,20 +30,22 @@ const ONNX_WASM_CDN_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/d
 const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
 export class ONNXWrapper {
-  public ort: typeof import("onnxruntime-web") | typeof import("onnxruntime-web/webgpu") = ortCPU;
-  private session: ortCPU.InferenceSession | ortGPU.InferenceSession | null = null;
+  public ort: typeof import("onnxruntime-web") | typeof import("onnxruntime-web/webgpu") = ort_CPU;
+  private session: ort_CPU.InferenceSession | ort_WEBGPU.InferenceSession | null = null;
 
   constructor(public settings: IONNXSettings) {
     if (settings.executionProvider === "webgpu") {
-      this.ort = ortGPU;
+      this.ort = ort_WEBGPU;
+    } else if (settings.executionProvider === "webgl") {
+      this.ort = ort_WEBGL;
     }
     this.ort.env.wasm.wasmPaths = settings.wasmPaths ?? DEFAULT_WASM_PATHS;
   }
 
   public async init() {
     if (!this.session) {
-      const { modelPath, executionProvider, fetchBinary } = this.settings;
-      if (executionProvider === "cpu") {
+      const { modelPath, executionProvider, fetchBinary, multiThread } = this.settings;
+      if (executionProvider === "cpu" || executionProvider === "wasm") {
         if (fetchBinary) {
           const binaryURL = ONNX_WASM_CDN_URL + "ort-wasm-simd-threaded.wasm";
           const response = await fetch(binaryURL)
@@ -38,17 +53,11 @@ export class ONNXWrapper {
           this.ort.env.wasm.wasmBinary = binary;
         }
 
-        if (this.settings.multiThread) {
-          const maxPossibleThreads = navigator.hardwareConcurrency ?? 1;
+        if (multiThread) {
+          const maxPossibleThreads = navigator.hardwareConcurrency ?? 0;
           const maxThreads = Math.min(this.settings.maxThreads ?? maxPossibleThreads, maxPossibleThreads);
           this.ort.env.wasm.numThreads = maxThreads;
-        } else {
-          this.ort.env.wasm.numThreads = 1;
         }
-      } else if (executionProvider === "webgpu") {
-        this.ort.env.wasm.numThreads = 1; // NOTE: not sure about this setting yet
-      } else {
-        throw new Error(`ONNXWrapper: Invalid execution provider: ${executionProvider}`);
       }
 
       // @ts-ignore
@@ -65,5 +74,4 @@ export class ONNXWrapper {
 
     return await this.session.run(feeds, options);
   }
-
 }
