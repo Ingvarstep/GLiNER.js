@@ -1,0 +1,36 @@
+name: "PR"
+
+on:
+  pull_request:
+    branches:
+      - "**"
+      - "!main"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set Up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Set Up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 6.0.2
+
+      - name: Install Dependencies with pnpm
+        run: pnpm i # Install project dependencies
+
+      - name: Run Tests
+        run: pnpm test # Run the test suite
+
+      - name: Lint Code
+        run: pnpm run lint # Run linting, assuming you have a lint script
+
+      - name: Build Project
+        run: pnpm run build # Build the project, assuming there's a build script
