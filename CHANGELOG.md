@@ -1,5 +1,12 @@
 # gliner
 
+## 0.0.10
+
+### Patch Changes
+
+- c77546b: debug github action
+- 2e0b65e: debug
+
 ## 0.0.9
 
 ### Patch Changes
