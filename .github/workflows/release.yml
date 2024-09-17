@@ -66,8 +66,10 @@ jobs:
 
       - name: Trim Upload URL
         run: |
-          echo "Trimmed upload URL..."
-          echo "$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')" > upload_url.txt
+          echo "Original URL: ${{ steps.create_release.outputs.upload_url }}"
+          TRIMMED_URL=$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')
+          echo "Trimmed URL: $TRIMMED_URL"
+          echo $TRIMMED_URL > upload_url.txt
           echo "UPLOAD_URL=$(cat upload_url.txt)" >> $GITHUB_ENV
 
       - name: List files for debugging
