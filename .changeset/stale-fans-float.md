@@ -1,5 +1,0 @@
----
-"gliner": patch
----
-
-Library Setup
