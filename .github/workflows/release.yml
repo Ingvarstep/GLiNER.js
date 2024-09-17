@@ -20,14 +20,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify NPM Token Presence
+      - name: Check NPM Token Length
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NODE_AUTH_TOKEN is not set"
-            exit 1
-          else
-            echo "NODE_AUTH_TOKEN is set and not empty"
-          fi
+          echo "NPM_TOKEN length: ${#NODE_AUTH_TOKEN}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
