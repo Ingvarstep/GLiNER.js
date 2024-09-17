@@ -59,23 +59,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.sha }} # Tag the release with the commit SHA
+          tag_name: v${{ github.sha }}
           release_name: Release v${{ github.sha }}
           draft: false
           prerelease: true
 
-      - name: Debug upload_url
-        run: 'echo "Upload URL: ${{ steps.create_release.outputs.upload_url }}"'
-
-      - name: List directory contents
-        run: ls -alh
+      - name: Trim Upload URL
+        id: trim_upload_url
+        run: echo "::set-output name=upload_url::$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')"
 
       - name: Upload release artifact
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./package-release.zip # Path to the zip file created above
-          asset_name: package-release.zip # Name of the uploaded artifact
+          upload_url: ${{ steps.trim_upload_url.outputs.upload_url }}
+          asset_path: ./package-release.zip
+          asset_name: package-release.zip
           asset_content_type: application/zip
 
       # Uncomment the following steps to enable npm publishing when you're ready
