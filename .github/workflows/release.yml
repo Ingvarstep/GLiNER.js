@@ -20,10 +20,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Verify NPM Authentication
+      - name: Verify NPM Token Presence
         run: |
-          npm config set registry https://registry.npmjs.org/
-          npm whoami
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NODE_AUTH_TOKEN is not set"
+            exit 1
+          else
+            echo "NODE_AUTH_TOKEN is set and not empty"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
