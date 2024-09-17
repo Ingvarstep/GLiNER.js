@@ -21,9 +21,12 @@ jobs:
 
     steps:
       - name: Verify NPM Authentication
-        run: npm whoami
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm whoami
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
