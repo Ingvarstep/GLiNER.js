@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.5
+
+### Patch Changes
+
+- d3f7bc7: now using gittags
+
 ## 0.0.4
 
 ### Patch Changes
