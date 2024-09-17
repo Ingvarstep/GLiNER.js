@@ -6,7 +6,7 @@ on:
       - main
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
-permissions: {} # reset permissions
+# permissions: {} # reset permissions
 
 jobs:
   release:
