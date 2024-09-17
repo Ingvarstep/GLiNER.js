@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.6
+
+### Patch Changes
+
+- 6840b38: using package.json version for gittag
+
 ## 0.0.5
 
 ### Patch Changes
