@@ -1,0 +1,5 @@
+---
+"gliner": patch
+---
+
+debug
