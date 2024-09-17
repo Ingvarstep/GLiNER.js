@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.8
+
+### Patch Changes
+
+- 4c69aea: debug
+
 ## 0.0.7
 
 ### Patch Changes
