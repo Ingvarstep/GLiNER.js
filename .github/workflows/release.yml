@@ -106,6 +106,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for authentication
 
+      # Log uncommitted changes before publish
+      - name: Log uncommitted changes
+        if: steps.check_changesets.outcome == 'success'
+        run: |
+          echo "Listing uncommitted changes before publishing:"
+          git status
+          git diff
+
       # Publish to npm (activated)
       - name: Publish to npm
         if: steps.check_changesets.outcome == 'success'
