@@ -3,7 +3,9 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - main # This ensures the workflow runs on changes pushed to the main branch
+
+  workflow_dispatch: # Allows manually triggering the workflow for testing or urgent releases
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -15,75 +17,74 @@ jobs:
       contents: write # Required to create the release
       actions: read # For checking token permissions
       issues: write # For creating an issue
-    name: Create GitHub Release
+    name: Create GitHub Release and Publish to npm
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check GitHub Token Permissions
-        run: |
-          echo "Checking permissions of GITHUB_TOKEN...."
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/actions/permissions
-
-      - name: Test GITHUB_TOKEN by Creating an Issue
-        run: |
-          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/issues \
-          -d '{"title":"Test issue from GitHub Action"}'
-
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # Set up pnpm
       - name: Set up pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 6.0.2
 
+      # Install dependencies
       - name: Install dependencies
-        run: pnpm i
+        run: pnpm install
 
+      # Run Changesets to version the packages and apply changelogs
+      - name: Run Changesets version
+        run: pnpm changeset version # This will bump the versions and update changelogs
+
+      # Commit the version bump and changelog updates (needed if the workflow pushes the version bump)
+      - name: Commit version bump
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Version bump and changelog update"
+          git push
+
+      # Build the package (after version bump)
       - name: Build the package
         run: pnpm run build # Ensure you have a build script in your package.json
 
+      # Create a release archive (zip)
       - name: Create a release archive
-        run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md # Archive the required files and folders
+        run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md
 
+      # Create GitHub Release using the pushed tag
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.sha }}
-          release_name: Release v${{ github.sha }}
+          tag_name: ${{ github.ref_name }} # Use the tag name for the release
+          release_name: Release ${{ github.ref_name }}
           draft: false
-          prerelease: true
+          prerelease: false # Set to false for stable releases
 
-      - name: Trim Upload URL
-        run: |
-          echo "Original URL: ${{ steps.create_release.outputs.upload_url }}"
-          TRIMMED_URL=$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')
-          echo "Trimmed URL: $TRIMMED_URL"
-          echo $TRIMMED_URL > upload_url.txt
-          echo "UPLOAD_URL=$(cat upload_url.txt)" >> $GITHUB_ENV
-
-      - name: List files for debugging
-        run: ls -lah
-
+      # Upload release artifact
       - name: Upload release artifact
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ env.UPLOAD_URL }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./package-release.zip
           asset_name: package-release.zip
           asset_content_type: application/zip
 
-      # Uncomment the following steps to enable npm publishing when you're ready
+      # Publish to npm (optional)
+      # Uncomment this section if you're ready to publish automatically
       # - name: Publish to npm
       #   run: pnpm publish
       #   env:
