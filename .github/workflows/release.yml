@@ -22,18 +22,17 @@ jobs:
     steps:
       # Set NPM Registry to ensure the correct registry is used
       - name: Set NPM Registry
-        run:
-          npm config set registry https://registry.npmjs.org/
+        run: npm config set registry https://registry.npmjs.org/
 
-          # Set the NPM authentication token using pnpm
-      - name: Set NPM Auth Token
-        run: pnpm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+      #     # Set the NPM authentication token using pnpm
+      # - name: Set NPM Auth Token
+      #   run: pnpm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
 
-      # Verify NPM Authentication
-      - name: Verify NPM Authentication
-        run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # # Verify NPM Authentication
+      # - name: Verify NPM Authentication
+      #   run: npm whoami
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Checkout the code
       - name: Checkout code
@@ -121,9 +120,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for authentication
 
-      # Publish to npm (activated)
+      # Publish to npm
       - name: Publish to npm
-        if: steps.check_changesets.outcome == 'success'
-        run: pnpm publish --access public
+        run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use NPM token for publishing
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
