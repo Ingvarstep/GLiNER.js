@@ -18,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check GitHub Token Permissions
+        run: |
+          echo "Checking permissions of GITHUB_TOKEN..."
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/actions/permissions
+
       - name: Checkout code
         uses: actions/checkout@v3
 
