@@ -75,28 +75,15 @@ jobs:
         if: steps.check_changesets.outcome == 'success'
         run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md
 
-      # Create GitHub Release using the pushed tag
-      - name: Create GitHub Release
-        id: create_release
+      # Create GitHub Release and Upload Release Asset using softprops/action-gh-release
+      - name: Create GitHub Release and Upload Asset
         if: steps.check_changesets.outcome == 'success'
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./package-release.zip # Path to the asset to be uploaded
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }} # Use the tag name for the release
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false # Set to false for stable releases
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for authentication
 
-      # Upload release artifact
-      - name: Upload release artifact
-        if: steps.check_changesets.outcome == 'success'
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./package-release.zip
-          asset_name: package-release.zip
-          asset_content_type: application/zip
 
       # Publish to npm (optional)
       # Uncomment this section if you're ready to publish automatically
