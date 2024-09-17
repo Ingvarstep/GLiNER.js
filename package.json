@@ -1,6 +1,6 @@
 {
   "name": "gliner",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "This is a GLiNER inference engine",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
