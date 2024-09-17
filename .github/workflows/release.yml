@@ -61,8 +61,14 @@ jobs:
         with:
           tag_name: v${{ github.sha }} # Tag the release with the commit SHA
           release_name: Release v${{ github.sha }}
-          draft: false # Set to true if you want to review the release before publishing
-          prerelease: true # Set to false for stable releases
+          draft: false
+          prerelease: true
+
+      - name: Debug upload_url
+        run: 'echo "Upload URL: ${{ steps.create_release.outputs.upload_url }}"'
+
+      - name: List directory contents
+        run: ls -alh
 
       - name: Upload release artifact
         uses: actions/upload-release-asset@v1
