@@ -65,13 +65,18 @@ jobs:
           prerelease: true
 
       - name: Trim Upload URL
-        id: trim_upload_url
-        run: echo "::set-output name=upload_url::$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')"
+        run: |
+          echo "Trimmed upload URL..."
+          echo "$(echo '${{ steps.create_release.outputs.upload_url }}' | sed 's/{.*}//')" > upload_url.txt
+          echo "UPLOAD_URL=$(cat upload_url.txt)" >> $GITHUB_ENV
+
+      - name: List files for debugging
+        run: ls -lah
 
       - name: Upload release artifact
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.trim_upload_url.outputs.upload_url }}
+          upload_url: ${{ env.UPLOAD_URL }}
           asset_path: ./package-release.zip
           asset_name: package-release.zip
           asset_content_type: application/zip
