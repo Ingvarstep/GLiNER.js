@@ -23,6 +23,13 @@ jobs:
           echo "Checking permissions of GITHUB_TOKEN...."
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/actions/permissions
 
+      - name: Test GITHUB_TOKEN by Creating an Issue
+        run: |
+          curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/issues \
+          -d '{"title":"Test issue from GitHub Action"}'
+
       - name: Checkout code
         uses: actions/checkout@v3
 
