@@ -22,7 +22,12 @@ jobs:
     steps:
       # Set NPM Registry to ensure the correct registry is used
       - name: Set NPM Registry
-        run: npm config set registry https://registry.npmjs.org/
+        run:
+          npm config set registry https://registry.npmjs.org/
+
+          # Set the NPM authentication token using pnpm
+      - name: Set NPM Auth Token
+        run: pnpm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
 
       # Verify NPM Authentication
       - name: Verify NPM Authentication
