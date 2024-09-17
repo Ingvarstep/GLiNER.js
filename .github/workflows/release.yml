@@ -13,6 +13,8 @@ jobs:
     if: github.repository == 'Ingvarstep/GLiNER.js'
     permissions:
       contents: write # Required to create the release
+      actions: read # For checking token permissions
+      issues: write # For creating an issue
     name: Create GitHub Release
     runs-on: ubuntu-latest
 
