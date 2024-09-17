@@ -65,6 +65,14 @@ jobs:
           git commit -m "Version bump and changelog update"
           git push
 
+      # Create a new Git tag based on the version from package.json
+      - name: Create Tag
+        if: steps.check_changesets.outcome == 'success'
+        run: |
+          VERSION=$(cat package.json | jq -r '.version')
+          git tag v$VERSION
+          git push origin v$VERSION
+
       # Build the package (after version bump)
       - name: Build the package
         if: steps.check_changesets.outcome == 'success'
@@ -80,6 +88,7 @@ jobs:
         if: steps.check_changesets.outcome == 'success'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name }} # Use the tag created in the previous step
           files: ./package-release.zip # Path to the asset to be uploaded
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for authentication
