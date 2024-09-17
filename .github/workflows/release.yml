@@ -3,64 +3,105 @@ name: Release
 on:
   push:
     branches:
-      - main
+      - main # Trigger only on pushes to the main branch
+
+  workflow_dispatch: # Allows manually triggering the workflow for testing or urgent releases
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
-permissions: {} # reset permissions
 
 jobs:
   release:
-    # Prevent the action from running on forks
     if: github.repository == 'Ingvarstep/GLiNER.js'
     permissions:
       contents: write # Required to create the release
-    name: Create GitHub Release
+      actions: read # For checking token permissions
+      issues: write # For creating an issue
+    name: Create GitHub Release and Publish to npm
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # Set up pnpm
       - name: Set up pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 6.0.2
 
+      # Install dependencies
       - name: Install dependencies
-        run: pnpm i
+        run: pnpm install
 
+      # Check for pending changesets before proceeding with the release
+      - name: Check for changesets
+        id: check_changesets
+        run: |
+          if pnpm changeset status | grep -q "No unreleased changesets"; then
+            echo "No unreleased changesets found. Skipping version bump and release."
+            exit 0
+          fi
+        continue-on-error: false # If no changesets are found, this step will stop the workflow
+
+      # Run Changesets to version the packages and apply changelogs
+      - name: Run Changesets version
+        if: steps.check_changesets.outcome == 'success'
+        run: pnpm changeset version
+
+      # Commit the version bump and changelog updates (if applicable)
+      - name: Commit version bump
+        if: steps.check_changesets.outcome == 'success'
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Version bump and changelog update"
+          git push
+
+      # Build the package (after version bump)
       - name: Build the package
+        if: steps.check_changesets.outcome == 'success'
         run: pnpm run build # Ensure you have a build script in your package.json
 
+      # Create a release archive (zip)
       - name: Create a release archive
-        run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md # Archive the required files and folders
+        if: steps.check_changesets.outcome == 'success'
+        run: zip -r package-release.zip dist package.json src README.md CHANGELOG.md
 
+      # Create GitHub Release using the pushed tag
       - name: Create GitHub Release
         id: create_release
+        if: steps.check_changesets.outcome == 'success'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.sha }} # Tag the release with the commit SHA
-          release_name: Release v${{ github.sha }}
-          draft: false # Set to true if you want to review the release before publishing
-          prerelease: true # Set to false for stable releases
+          tag_name: ${{ github.ref_name }} # Use the tag name for the release
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false # Set to false for stable releases
 
+      # Upload release artifact
       - name: Upload release artifact
+        if: steps.check_changesets.outcome == 'success'
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./package-release.zip # Path to the zip file created above
-          asset_name: package-release.zip # Name of the uploaded artifact
+          asset_path: ./package-release.zip
+          asset_name: package-release.zip
           asset_content_type: application/zip
 
-      # Uncomment the following steps to enable npm publishing when you're ready
+      # Publish to npm (optional)
+      # Uncomment this section if you're ready to publish automatically
       # - name: Publish to npm
+      #   if: steps.check_changesets.outcome == 'success'
       #   run: pnpm publish
       #   env:
       #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
