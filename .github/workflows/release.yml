@@ -20,9 +20,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check NPM Token Length
-        run: |
-          echo "NPM_TOKEN length: ${#NODE_AUTH_TOKEN}"
+      # Set NPM Registry to ensure the correct registry is used
+      - name: Set NPM Registry
+        run: npm config set registry https://registry.npmjs.org/
+
+      # Verify NPM Authentication
+      - name: Verify NPM Authentication
+        run: npm whoami
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
