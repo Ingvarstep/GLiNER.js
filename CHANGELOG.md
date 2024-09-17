@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.7
+
+### Patch Changes
+
+- c5bfd67: release file has version number
+
 ## 0.0.6
 
 ### Patch Changes
