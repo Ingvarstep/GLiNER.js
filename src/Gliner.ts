@@ -49,4 +49,12 @@ export class Gliner {
 
     return await this.model.inference(texts, entities, flatNer, threshold);
   }
+
+  async inference_with_chunking(texts: string[], entities: string[], threshold: number = 0.5, flatNer: boolean = false): Promise<any[]> {
+    if (!this.model) {
+      throw new Error("Model is not initialized. Call initialize() first.");
+    }
+
+    return await this.model.inference_with_chunking(texts, entities, flatNer, threshold);
+  }
 }
