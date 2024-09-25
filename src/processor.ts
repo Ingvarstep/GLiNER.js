@@ -70,7 +70,7 @@ export class Processor {
     const promptLengths: number[] = [];
     const textLengths: number[] = [];
 
-    tokens.forEach((text, id) => {
+    tokens.forEach((text) => {
       textLengths.push(text.length);
 
       let inputText: string[] = [];
@@ -175,7 +175,7 @@ export class SpanProcessor extends Processor {
 
   prepareBatch(texts: string[], entities: string[]): any {
     const [batchTokens, batchWordsStartIdx, batchWordsEndIdx] = this.batchTokenizeText(texts);
-    const { classToId, idToClass } = this.createMappings(entities);
+    const { idToClass } = this.createMappings(entities);
     const [inputTokens, textLengths, promptLengths] = this.prepareTextInputs(batchTokens, entities);
 
     let [inputsIds, attentionMasks, wordsMasks] = this.encodeInputs(inputTokens, promptLengths);
