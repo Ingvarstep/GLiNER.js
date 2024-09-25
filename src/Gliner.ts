@@ -16,6 +16,25 @@ export interface InitConfig {
   maxWidth?: number;
 }
 
+export interface IInference {
+  texts: string[];
+  entities: string[];
+  flatNer?: boolean;
+  threshold?: number;
+}
+
+export type RawInferenceResult = [string, number, number, string, number][][]
+
+export interface IEntityResult {
+  spanText: string;
+  start: number;
+  end: number;
+  label: string;
+  score: number;
+}
+export type InferenceResultSingle = IEntityResult[]
+export type InferenceResultMultiple = InferenceResultSingle[]
+
 export class Gliner {
   private model: Model | null = null;
 
@@ -42,19 +61,37 @@ export class Gliner {
     await this.model.initialize();
   }
 
-  async inference(texts: string[], entities: string[], threshold: number = 0.5, flatNer: boolean = false): Promise<any[]> {
+  async inference({ texts, entities, flatNer = false, threshold = 0.5 }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
 
-    return await this.model.inference(texts, entities, flatNer, threshold);
+    const result = await this.model.inference(texts, entities, flatNer, threshold);
+    return this.mapRawResultToResponse(result);
   }
 
-  async inference_with_chunking(texts: string[], entities: string[], threshold: number = 0.5, flatNer: boolean = false): Promise<any[]> {
+  async inference_with_chunking({ texts, entities, flatNer = false, threshold = 0.5 }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
 
-    return await this.model.inference_with_chunking(texts, entities, flatNer, threshold);
+    const result = await this.model.inference_with_chunking(texts, entities, flatNer, threshold);
+    return this.mapRawResultToResponse(result);
+  }
+
+  mapRawResultToResponse(rawResult: RawInferenceResult): InferenceResultMultiple {
+    const response: InferenceResultMultiple = [];
+    for (const individualResult of rawResult) {
+      const entityResult: IEntityResult[] = individualResult.map(([spanText, start, end, label, score]) => ({
+        spanText,
+        start,
+        end,
+        label,
+        score
+      }));
+      response.push(entityResult);
+    }
+
+    return response;
   }
 }

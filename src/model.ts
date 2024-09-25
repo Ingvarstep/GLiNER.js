@@ -1,5 +1,6 @@
 import ort from "onnxruntime-web";
 import { ONNXWrapper } from "./ONNXWrapper";
+import { RawInferenceResult } from "./Gliner";
 
 export class Model {
   constructor(
@@ -51,7 +52,7 @@ export class Model {
     flatNer: boolean = false,
     threshold: number = 0.5,
     multiLabel: boolean = false
-  ): Promise<number[][][]> {
+  ): Promise<RawInferenceResult> {
     let batch = this.processor.prepareBatch(texts, entities);
     let feeds = this.prepareInputs(batch);
     const results = await this.onnxWrapper.run(feeds);
@@ -90,7 +91,7 @@ export class Model {
     multiLabel: boolean = false,
     batch_size: number = 4,
     max_words: number = 512,
-  ): Promise<number[][][]> {
+  ): Promise<RawInferenceResult> {
 
     const { classToId, idToClass } = this.processor.createMappings(entities);
 
@@ -101,94 +102,93 @@ export class Model {
     texts.forEach((text, id) => {
       let [tokens, wordsStartIdx, wordsEndIdx] = this.processor.tokenizeText(text);
       let num_sub_batches: number = Math.ceil(tokens.length / max_words);
-      
-      for (let i = 0; i < num_sub_batches; i++) {
-          let start = i * max_words;
-          let end = Math.min((i + 1) * max_words, tokens.length);
-          
-          batchIds.push(id);
-          batchTokens.push(tokens.slice(start, end));
-          batchWordsStartIdx.push(wordsStartIdx.slice(start, end));
-          batchWordsEndIdx.push(wordsEndIdx.slice(start, end));
-      }
 
+      for (let i = 0; i < num_sub_batches; i++) {
+        let start = i * max_words;
+        let end = Math.min((i + 1) * max_words, tokens.length);
+
+        batchIds.push(id);
+        batchTokens.push(tokens.slice(start, end));
+        batchWordsStartIdx.push(wordsStartIdx.slice(start, end));
+        batchWordsEndIdx.push(wordsEndIdx.slice(start, end));
+      }
     });
-    let num_batches: number = Math.ceil(batchIds.length/batch_size);
-    
-    let finalDecodedSpans:number[][][] = [];
-    for (let id = 0; id<texts.length; id++) {
+
+    let num_batches: number = Math.ceil(batchIds.length / batch_size);
+
+    let finalDecodedSpans: RawInferenceResult = [];
+    for (let id = 0; id < texts.length; id++) {
       finalDecodedSpans.push([]);
     }
-    
-    for (let batch_id = 0; batch_id<num_batches; batch_id++) {
-        let start: number = batch_id * batch_size;
-        let end: number = Math.min((batch_id + 1) * batch_size, batchIds.length);
 
-        let currBatchTokens = batchTokens.slice(start, end);
-        let currBatchWordsStartIdx = batchWordsStartIdx.slice(start, end);
-        let currBatchWordsEndIdx = batchWordsEndIdx.slice(start, end);
-        let currBatchIds = batchIds.slice(start, end);
+    for (let batch_id = 0; batch_id < num_batches; batch_id++) {
+      let start: number = batch_id * batch_size;
+      let end: number = Math.min((batch_id + 1) * batch_size, batchIds.length);
 
-        let [inputTokens, textLengths, promptLengths] = this.processor.prepareTextInputs(currBatchTokens, entities);
+      let currBatchTokens = batchTokens.slice(start, end);
+      let currBatchWordsStartIdx = batchWordsStartIdx.slice(start, end);
+      let currBatchWordsEndIdx = batchWordsEndIdx.slice(start, end);
+      let currBatchIds = batchIds.slice(start, end);
 
-        let [inputsIds, attentionMasks, wordsMasks] = this.processor.encodeInputs(inputTokens, promptLengths);
-    
-        inputsIds = this.processor.padArray(inputsIds);
-        attentionMasks = this.processor.padArray(attentionMasks);
-        wordsMasks = this.processor.padArray(wordsMasks);
-    
-        let { spanIdxs, spanMasks } = this.processor.prepareSpans(currBatchTokens, this.config["max_width"]);
-    
-        spanIdxs = this.processor.padArray(spanIdxs, 3);
-        spanMasks = this.processor.padArray(spanMasks);
+      let [inputTokens, textLengths, promptLengths] = this.processor.prepareTextInputs(currBatchTokens, entities);
 
-        
-        let batch = {
-          inputsIds: inputsIds,
-          attentionMasks: attentionMasks,
-          wordsMasks: wordsMasks,
-          textLengths: textLengths,
-          spanIdxs: spanIdxs,
-          spanMasks: spanMasks,
-          idToClass: idToClass,
-          batchTokens: currBatchTokens,
-          batchWordsStartIdx: currBatchWordsStartIdx,
-          batchWordsEndIdx: currBatchWordsEndIdx,
-        };
+      let [inputsIds, attentionMasks, wordsMasks] = this.processor.encodeInputs(inputTokens, promptLengths);
 
-        let feeds = this.prepareInputs(batch);
-        const results = await this.onnxWrapper.run(feeds);
-        const modelOutput = results.logits.data;
-        // const modelOutput = results.logits.data as number[];
-    
-        const batchSize = batch.batchTokens.length;
-        const inputLength = Math.max(...batch.textLengths);
-        const maxWidth = this.config.max_width;
-        const numEntities = entities.length;
-        
-        const decodedSpans = this.decoder.decode(
-          batchSize,
-          inputLength,
-          maxWidth,
-          numEntities,
-          texts,
-          currBatchIds,
-          batch.batchWordsStartIdx,
-          batch.batchWordsEndIdx,
-          batch.idToClass,
-          modelOutput,
-          flatNer,
-          threshold,
-          multiLabel
-        );
-        
-        for (let i = 0; i < currBatchIds.length; i++) {
-          const originalTextId = currBatchIds[i];
-          finalDecodedSpans[originalTextId].push(...decodedSpans[i]);
-        }
+      inputsIds = this.processor.padArray(inputsIds);
+      attentionMasks = this.processor.padArray(attentionMasks);
+      wordsMasks = this.processor.padArray(wordsMasks);
+
+      let { spanIdxs, spanMasks } = this.processor.prepareSpans(currBatchTokens, this.config["max_width"]);
+
+      spanIdxs = this.processor.padArray(spanIdxs, 3);
+      spanMasks = this.processor.padArray(spanMasks);
+
+      let batch = {
+        inputsIds: inputsIds,
+        attentionMasks: attentionMasks,
+        wordsMasks: wordsMasks,
+        textLengths: textLengths,
+        spanIdxs: spanIdxs,
+        spanMasks: spanMasks,
+        idToClass: idToClass,
+        batchTokens: currBatchTokens,
+        batchWordsStartIdx: currBatchWordsStartIdx,
+        batchWordsEndIdx: currBatchWordsEndIdx,
+      };
+
+      let feeds = this.prepareInputs(batch);
+      const results = await this.onnxWrapper.run(feeds);
+      const modelOutput = results.logits.data;
+      // const modelOutput = results.logits.data as number[];
+
+      const batchSize = batch.batchTokens.length;
+      const inputLength = Math.max(...batch.textLengths);
+      const maxWidth = this.config.max_width;
+      const numEntities = entities.length;
+
+      const decodedSpans = this.decoder.decode(
+        batchSize,
+        inputLength,
+        maxWidth,
+        numEntities,
+        texts,
+        currBatchIds,
+        batch.batchWordsStartIdx,
+        batch.batchWordsEndIdx,
+        batch.idToClass,
+        modelOutput,
+        flatNer,
+        threshold,
+        multiLabel
+      );
+
+      for (let i = 0; i < currBatchIds.length; i++) {
+        const originalTextId = currBatchIds[i];
+        finalDecodedSpans[originalTextId].push(...decodedSpans[i]);
       }
-
-      return finalDecodedSpans;
     }
+
+    return finalDecodedSpans;
+  }
 
 }
