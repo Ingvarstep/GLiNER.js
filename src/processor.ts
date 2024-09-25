@@ -149,20 +149,20 @@ export class SpanProcessor extends Processor {
     super(config, tokenizer, wordsSplitter);
   }
 
-  prepareSpans(batchTokens: string[][], maxWidth: number = 12): { spanIdxs: number[][][]; spanMasks: number[][] } {
+  prepareSpans(batchTokens: string[][], maxWidth: number = 12): { spanIdxs: number[][][]; spanMasks: boolean[][] } {
     let spanIdxs: number[][][] = [];
-    let spanMasks: number[][] = [];
+    let spanMasks: boolean[][] = [];
 
     batchTokens.forEach((tokens) => {
       let textLength = tokens.length;
       let spanIdx: number[][] = [];
-      let spanMask: number[] = [];
+      let spanMask: boolean[] = [];
 
       for (let i = 0; i < textLength; i++) {
         for (let j = 0; j < maxWidth; j++) {
           let endIdx = Math.min(i + j, textLength - 1);
           spanIdx.push([i, endIdx]);
-          spanMask.push(endIdx < textLength ? 1 : 0);
+          spanMask.push(endIdx < textLength ? true : false);
         }
       }
 

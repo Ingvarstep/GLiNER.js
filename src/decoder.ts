@@ -75,6 +75,8 @@ export class SpanDecoder extends BaseDecoder {
         inputLength: number,
         maxWidth: number,
         numEntities: number,
+        texts: string[][],
+        batchIds: number[],
         batchWordsStartIdx: number[][],
         batchWordsEndIdx: number[][],
         idToClass: Record<number, string>,
@@ -106,9 +108,14 @@ export class SpanDecoder extends BaseDecoder {
                 startToken < batchWordsStartIdx[batch].length &&
                 endToken < batchWordsEndIdx[batch].length
             ) {
+                let globalBatch = batchIds[batch];
+                let startIdx = batchWordsStartIdx[batch][startToken];
+                let endIdx = batchWordsEndIdx[batch][endToken];
+                let spanText = texts[globalBatch].slice(startIdx, endIdx);
                 spans[batch].push([
-                    batchWordsStartIdx[batch][startToken],
-                    batchWordsEndIdx[batch][endToken],
+                    spanText,
+                    startIdx,
+                    endIdx,
                     idToClass[entity + 1],
                     prob
                 ]);
