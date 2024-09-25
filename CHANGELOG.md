@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.15
+
+### Patch Changes
+
+- f37768e: exporting whitespace token splitter
+
 ## 0.0.14
 
 ### Patch Changes
