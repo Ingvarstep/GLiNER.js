@@ -88,7 +88,7 @@ export class Model {
     flatNer: boolean = false,
     threshold: number = 0.5,
     multiLabel: boolean = false,
-    batch_size: number = 8,
+    batch_size: number = 4,
     max_words: number = 512,
   ): Promise<number[][][]> {
 
@@ -119,7 +119,7 @@ export class Model {
     for (let id = 0; id<texts.length; id++) {
       finalDecodedSpans.push([]);
     }
-
+    
     for (let batch_id = 0; batch_id<num_batches; batch_id++) {
         let start: number = batch_id * batch_size;
         let end: number = Math.min((batch_id + 1) * batch_size, batchIds.length);
@@ -137,7 +137,7 @@ export class Model {
         attentionMasks = this.processor.padArray(attentionMasks);
         wordsMasks = this.processor.padArray(wordsMasks);
     
-        let { spanIdxs, spanMasks } = this.processor.prepareSpans(batchTokens, this.config["max_width"]);
+        let { spanIdxs, spanMasks } = this.processor.prepareSpans(currBatchTokens, this.config["max_width"]);
     
         spanIdxs = this.processor.padArray(spanIdxs, 3);
         spanMasks = this.processor.padArray(spanMasks);
@@ -151,7 +151,7 @@ export class Model {
           spanIdxs: spanIdxs,
           spanMasks: spanMasks,
           idToClass: idToClass,
-          batchTokens: batchTokens,
+          batchTokens: currBatchTokens,
           batchWordsStartIdx: currBatchWordsStartIdx,
           batchWordsEndIdx: currBatchWordsEndIdx,
         };
@@ -165,7 +165,7 @@ export class Model {
         const inputLength = Math.max(...batch.textLengths);
         const maxWidth = this.config.max_width;
         const numEntities = entities.length;
-    
+        
         const decodedSpans = this.decoder.decode(
           batchSize,
           inputLength,
@@ -181,9 +181,9 @@ export class Model {
           threshold,
           multiLabel
         );
-
-        for (let i = 0; i < decodedSpans.length; i++) {
-          const originalTextId = batchIds[start + i];
+        
+        for (let i = 0; i < currBatchIds.length; i++) {
+          const originalTextId = currBatchIds[i];
           finalDecodedSpans[originalTextId].push(...decodedSpans[i]);
         }
       }
