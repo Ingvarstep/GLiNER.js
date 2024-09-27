@@ -73,23 +73,17 @@ export class ONNXWrapper {
     if (!this.session) {
       const { modelPath, executionProvider, fetchBinary, multiThread } = this.settings;
       if (executionProvider === "cpu" || executionProvider === "wasm") {
-        if (fetchBinary) {
-          const binaryURL = ONNX_WASM_CDN_URL + "ort-wasm-simd-threaded.wasm";
+        if (fetchBinary && "env" in this.ort && this.ort.env?.wasm) {
+          const binaryURL = this.ort.env.wasm.wasmPaths + "ort-wasm-simd-threaded.wasm";
           const response = await fetch(binaryURL)
           const binary = await response.arrayBuffer();
-          // Only set wasmBinary for web contexts that support WASM
-          if ("env" in this.ort && this.ort.env?.wasm) {
-            this.ort.env.wasm.wasmBinary = binary;
-          }
+          this.ort.env.wasm.wasmBinary = binary;
         }
 
-        if (multiThread) {
+        if (multiThread && "env" in this.ort && this.ort.env?.wasm) {
           const maxPossibleThreads = navigator.hardwareConcurrency ?? 0;
           const maxThreads = Math.min(this.settings.maxThreads ?? maxPossibleThreads, maxPossibleThreads);
-          // Only set numThreads for web contexts that support WASM
-          if ("env" in this.ort && this.ort.env?.wasm) {
-            this.ort.env.wasm.numThreads = maxThreads;
-          }
+          this.ort.env.wasm.numThreads = maxThreads;
         }
       }
 
