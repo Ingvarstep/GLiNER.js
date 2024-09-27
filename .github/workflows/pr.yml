@@ -49,4 +49,6 @@ jobs:
             echo "No unreleased changesets found. Continuing with standard checks."
           else
             echo "Changesets found, version bump possible."
+            exit 1
+          fi
         continue-on-error: false
