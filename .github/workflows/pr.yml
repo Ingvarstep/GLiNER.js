@@ -30,16 +30,6 @@ jobs:
       - name: Install Dependencies with pnpm
         run: pnpm install
 
-      # Check for pending changesets before running further tests and version checks
-      - name: Check for Changesets
-        id: check_changesets
-        run: |
-          if pnpm changeset status | grep -q "No unreleased changesets"; then
-            echo "No unreleased changesets found. Continuing with standard checks."
-          else
-            echo "Changesets found, version bump possible."
-        continue-on-error: false
-
       # Run tests
       - name: Run Tests
         run: pnpm test
@@ -51,3 +41,13 @@ jobs:
       # Build the project
       - name: Build Project
         run: pnpm run build
+
+      # Check for pending changesets before running further tests and version checks
+      - name: Check for Changesets
+        id: check_changesets
+        run: |
+          if pnpm changeset status | grep -q "No unreleased changesets"; then
+            echo "No unreleased changesets found. Continuing with standard checks."
+          else
+            echo "Changesets found, version bump possible."
+        continue-on-error: false
