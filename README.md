@@ -58,11 +58,10 @@ console.log(decoded);
 #### ONNX settings API
 
 - modelPath: can be either a URL to a local model as in the basic example, or it can also be the Model itself as an array of binary data.
-- executionContext: options here are `node` or `web`
 - executionProvider: these are the same providers that ONNX web supports, currently we allow `webgpu` (recommended), `cpu`, `wasm`, `webgl` but more can be added
 - wasmPaths: Path to the wasm binaries, this can be either a URL to the binaries like a CDN url, or a local path to a folder with the binaries.
 - multiThread: wether to multithread at all, only relevent for wasm and cpu exeuction providers.
-- multiThread: When choosing the wasm or cpu provider and the web context, multiThread will allow you to specify the number of cores you want to use.
+- multiThread: When choosing the wasm or cpu provider, multiThread will allow you to specify the number of cores you want to use.
 - fetchBinary: will prefetch the binary from the default or provided wasm paths
 
 ## 🛠 Setup & Model Preparation

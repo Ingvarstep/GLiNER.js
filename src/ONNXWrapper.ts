@@ -1,24 +1,19 @@
 import ort_CPU, { InferenceSession } from "onnxruntime-web";
 import ort_WEBGPU from "onnxruntime-web/webgpu";
 import ort_WEBGL from "onnxruntime-web/webgl";
-import ort_NODE from "onnxruntime-node";
 
-type WebOrtLib =
+type OrtLib =
   | typeof import("onnxruntime-web")
   | typeof import("onnxruntime-web/webgpu")
   | typeof import("onnxruntime-web/webgl");
 
-type NodeOrtLib = typeof import("onnxruntime-node");
-
-type OrtLib = WebOrtLib | NodeOrtLib;
-
 export type ExecutionProvider = "cpu" | "wasm" | "webgpu" | "webgl";
 
-export type ExecutionContext = "web" | "node";
+// export type ExecutionContext = "web"
 
 export interface IONNXSettings {
   modelPath: string | Uint8Array | ArrayBufferLike;
-  executionContext: ExecutionContext;
+  // executionContext: ExecutionContext;
   executionProvider?: ExecutionProvider;
   wasmPaths?: string;
   multiThread?: boolean;
@@ -39,16 +34,7 @@ export class ONNXWrapper {
     | null = null;
 
   constructor(public settings: IONNXSettings) {
-    const { executionContext, executionProvider, wasmPaths } = settings;
-    if (executionContext === "node") {
-      this.ort = ort_NODE;
-      return;
-    }
-
-    if (executionContext !== "web") {
-      throw new Error(`ONNXWrapper: Invalid execution context: '${executionContext}'`);
-    }
-
+    const { executionProvider, wasmPaths } = settings;
     switch (executionProvider) {
       case "cpu":
       case "wasm":
@@ -62,25 +48,21 @@ export class ONNXWrapper {
       default:
         throw new Error(`ONNXWrapper: Invalid execution provider: '${executionProvider}'`);
     }
-
-    // Only set wasmPaths for web contexts that support WASM
-    if ("env" in this.ort && this.ort.env?.wasm) {
-      this.ort.env.wasm.wasmPaths = wasmPaths ?? DEFAULT_WASM_PATHS;
-    }
+    this.ort.env.wasm.wasmPaths = wasmPaths ?? DEFAULT_WASM_PATHS;
   }
 
   public async init() {
     if (!this.session) {
       const { modelPath, executionProvider, fetchBinary, multiThread } = this.settings;
       if (executionProvider === "cpu" || executionProvider === "wasm") {
-        if (fetchBinary && "env" in this.ort && this.ort.env?.wasm) {
+        if (fetchBinary) {
           const binaryURL = this.ort.env.wasm.wasmPaths + "ort-wasm-simd-threaded.wasm";
           const response = await fetch(binaryURL);
           const binary = await response.arrayBuffer();
           this.ort.env.wasm.wasmBinary = binary;
         }
 
-        if (multiThread && "env" in this.ort && this.ort.env?.wasm) {
+        if (multiThread) {
           const maxPossibleThreads = navigator.hardwareConcurrency ?? 0;
           const maxThreads = Math.min(
             this.settings.maxThreads ?? maxPossibleThreads,

@@ -7,7 +7,6 @@ async function main(): Promise<void> {
     onnxSettings: {
       modelPath: "public/model.onnx",
       executionProvider: "cpu",
-      executionContext: "web",
       multiThread: true,
     },
     maxWidth: 12,
