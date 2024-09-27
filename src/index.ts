@@ -1,2 +1,2 @@
-export * from './Gliner';
-export { WhitespaceTokenSplitter } from './processor';
+export * from "./Gliner";
+export { WhitespaceTokenSplitter } from "./processor";

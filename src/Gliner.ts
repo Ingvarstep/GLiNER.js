@@ -12,7 +12,7 @@ export interface ITransformersSettings {
 export interface InitConfig {
   tokenizerPath: string;
   onnxSettings: IONNXSettings;
-  transformersSettings?: ITransformersSettings
+  transformersSettings?: ITransformersSettings;
   maxWidth?: number;
 }
 
@@ -23,7 +23,7 @@ export interface IInference {
   threshold?: number;
 }
 
-export type RawInferenceResult = [string, number, number, string, number][][]
+export type RawInferenceResult = [string, number, number, string, number][][];
 
 export interface IEntityResult {
   spanText: string;
@@ -32,8 +32,8 @@ export interface IEntityResult {
   label: string;
   score: number;
 }
-export type InferenceResultSingle = IEntityResult[]
-export type InferenceResultMultiple = InferenceResultSingle[]
+export type InferenceResultSingle = IEntityResult[];
+export type InferenceResultMultiple = InferenceResultSingle[];
 
 export class Gliner {
   private model: Model | null = null;
@@ -61,7 +61,12 @@ export class Gliner {
     await this.model.initialize();
   }
 
-  async inference({ texts, entities, flatNer = false, threshold = 0.5 }: IInference): Promise<InferenceResultMultiple> {
+  async inference({
+    texts,
+    entities,
+    flatNer = false,
+    threshold = 0.5,
+  }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
@@ -70,7 +75,12 @@ export class Gliner {
     return this.mapRawResultToResponse(result);
   }
 
-  async inference_with_chunking({ texts, entities, flatNer = false, threshold = 0.5 }: IInference): Promise<InferenceResultMultiple> {
+  async inference_with_chunking({
+    texts,
+    entities,
+    flatNer = false,
+    threshold = 0.5,
+  }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
@@ -82,13 +92,15 @@ export class Gliner {
   mapRawResultToResponse(rawResult: RawInferenceResult): InferenceResultMultiple {
     const response: InferenceResultMultiple = [];
     for (const individualResult of rawResult) {
-      const entityResult: IEntityResult[] = individualResult.map(([spanText, start, end, label, score]) => ({
-        spanText,
-        start,
-        end,
-        label,
-        score
-      }));
+      const entityResult: IEntityResult[] = individualResult.map(
+        ([spanText, start, end, label, score]) => ({
+          spanText,
+          start,
+          end,
+          label,
+          score,
+        }),
+      );
       response.push(entityResult);
     }
 

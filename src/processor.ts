@@ -52,7 +52,10 @@ export class Processor {
     return [batchTokens, batchWordsStartIdx, batchWordsEndIdx];
   }
 
-  createMappings(classes: string[]): { classToId: Record<string, number>; idToClass: Record<number, string> } {
+  createMappings(classes: string[]): {
+    classToId: Record<string, number>;
+    idToClass: Record<number, string>;
+  } {
     const classToId: Record<string, number> = {};
     const idToClass: Record<number, string> = {};
 
@@ -78,7 +81,7 @@ export class Processor {
         inputText.push("<<ENT>>");
         inputText.push(ent);
       }
-      inputText.push('<<SEP>>');
+      inputText.push("<<SEP>>");
       const promptLength = inputText.length;
       promptLengths.push(promptLength);
       inputText = inputText.concat(text);
@@ -87,7 +90,10 @@ export class Processor {
     return [inputTexts, textLengths, promptLengths];
   }
 
-  encodeInputs(texts: string[][], promptLengths: number[] | null = null): [number[][], number[][], number[][]] {
+  encodeInputs(
+    texts: string[][],
+    promptLengths: number[] | null = null,
+  ): [number[][], number[][], number[][]] {
     let wordsMasks: number[][] = [];
     let inputsIds: number[][] = [];
     let attentionMasks: number[][] = [];
@@ -128,7 +134,7 @@ export class Processor {
 
   padArray(arr: any[], dimensions: number = 2): any[] {
     if (dimensions < 2 || dimensions > 3) {
-      throw new Error('Only 2D and 3D arrays are supported');
+      throw new Error("Only 2D and 3D arrays are supported");
     }
 
     const maxLength = Math.max(...arr.map((subArr: any[]) => subArr.length));
@@ -136,9 +142,7 @@ export class Processor {
 
     return arr.map((subArr: any[]) => {
       const padCount = maxLength - subArr.length;
-      const padding = Array(padCount).fill(
-        dimensions === 3 ? Array(finalDim).fill(0) : 0
-      );
+      const padding = Array(padCount).fill(dimensions === 3 ? Array(finalDim).fill(0) : 0);
       return [...subArr, ...padding];
     });
   }
@@ -149,7 +153,10 @@ export class SpanProcessor extends Processor {
     super(config, tokenizer, wordsSplitter);
   }
 
-  prepareSpans(batchTokens: string[][], maxWidth: number = 12): { spanIdxs: number[][][]; spanMasks: boolean[][] } {
+  prepareSpans(
+    batchTokens: string[][],
+    maxWidth: number = 12,
+  ): { spanIdxs: number[][][]; spanMasks: boolean[][] } {
     let spanIdxs: number[][][] = [];
     let spanMasks: boolean[][] = [];
 

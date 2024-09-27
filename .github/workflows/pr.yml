@@ -1,36 +1,55 @@
-name: "PR"
+name: "PR Workflow"
 
 on:
   pull_request:
     branches:
-      - "**"
-      - "!main"
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # Set up Node.js
       - name: Set Up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # Set up pnpm
       - name: Set Up pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 6.0.2
 
+      # Install dependencies
       - name: Install Dependencies with pnpm
-        run: pnpm i # Install project dependencies
+        run: pnpm install
 
+      # Run tests
       - name: Run Tests
-        run: pnpm test # Run the test suite
+        run: pnpm test
 
+      # Lint the code
       - name: Lint Code
-        run: pnpm run lint # Run linting, assuming you have a lint script
+        run: pnpm run lint
 
+      # Build the project
       - name: Build Project
-        run: pnpm run build # Build the project, assuming there's a build script
+        run: pnpm run build
+
+      # Check for pending changesets before running further tests and version checks
+      - name: Check for Changesets
+        id: check_changesets
+        run: |
+          if pnpm changeset status | grep -q "No unreleased changesets"; then
+            echo "No unreleased changesets found, create a changeset using pnpm changeset."
+            exit 1
+          else
+            echo "Changesets found, version bump possible."
+            exit 0
+          fi
+        continue-on-error: false
