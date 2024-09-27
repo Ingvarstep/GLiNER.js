@@ -18,11 +18,7 @@ export class Processor {
   tokenizer: any;
   wordsSplitter: WhitespaceTokenSplitter;
 
-  constructor(
-    config: any,
-    tokenizer: any,
-    wordsSplitter: WhitespaceTokenSplitter,
-  ) {
+  constructor(config: any, tokenizer: any, wordsSplitter: WhitespaceTokenSplitter) {
     this.config = config;
     this.tokenizer = tokenizer;
     this.wordsSplitter = wordsSplitter;
@@ -72,10 +68,7 @@ export class Processor {
     return { classToId, idToClass };
   }
 
-  prepareTextInputs(
-    tokens: string[][],
-    entities: string[],
-  ): [string[][], number[], number[]] {
+  prepareTextInputs(tokens: string[][], entities: string[]): [string[][], number[], number[]] {
     const inputTexts: string[][] = [];
     const promptLengths: number[] = [];
     const textLengths: number[] = [];
@@ -149,20 +142,14 @@ export class Processor {
 
     return arr.map((subArr: any[]) => {
       const padCount = maxLength - subArr.length;
-      const padding = Array(padCount).fill(
-        dimensions === 3 ? Array(finalDim).fill(0) : 0,
-      );
+      const padding = Array(padCount).fill(dimensions === 3 ? Array(finalDim).fill(0) : 0);
       return [...subArr, ...padding];
     });
   }
 }
 
 export class SpanProcessor extends Processor {
-  constructor(
-    config: any,
-    tokenizer: any,
-    wordsSplitter: WhitespaceTokenSplitter,
-  ) {
+  constructor(config: any, tokenizer: any, wordsSplitter: WhitespaceTokenSplitter) {
     super(config, tokenizer, wordsSplitter);
   }
 
@@ -194,27 +181,17 @@ export class SpanProcessor extends Processor {
   }
 
   prepareBatch(texts: string[], entities: string[]): any {
-    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx] =
-      this.batchTokenizeText(texts);
+    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx] = this.batchTokenizeText(texts);
     const { idToClass } = this.createMappings(entities);
-    const [inputTokens, textLengths, promptLengths] = this.prepareTextInputs(
-      batchTokens,
-      entities,
-    );
+    const [inputTokens, textLengths, promptLengths] = this.prepareTextInputs(batchTokens, entities);
 
-    let [inputsIds, attentionMasks, wordsMasks] = this.encodeInputs(
-      inputTokens,
-      promptLengths,
-    );
+    let [inputsIds, attentionMasks, wordsMasks] = this.encodeInputs(inputTokens, promptLengths);
 
     inputsIds = this.padArray(inputsIds);
     attentionMasks = this.padArray(attentionMasks);
     wordsMasks = this.padArray(wordsMasks);
 
-    let { spanIdxs, spanMasks } = this.prepareSpans(
-      batchTokens,
-      this.config["max_width"],
-    );
+    let { spanIdxs, spanMasks } = this.prepareSpans(batchTokens, this.config["max_width"]);
 
     spanIdxs = this.padArray(spanIdxs, 3);
     spanMasks = this.padArray(spanMasks);

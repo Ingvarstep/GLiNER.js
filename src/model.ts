@@ -19,32 +19,17 @@ export class Model {
     const num_tokens = batch.inputsIds[0].length;
     const num_spans = batch.spanIdxs[0].length;
 
-    const createTensor = (
-      data: any[],
-      shape: number[],
-      tensorType: any = "int64",
-    ): ort.Tensor => {
+    const createTensor = (data: any[], shape: number[], tensorType: any = "int64"): ort.Tensor => {
       // @ts-ignore // NOTE: node types not working
-      return new this.onnxWrapper.ort.Tensor(
-        tensorType,
-        data.flat(Infinity),
-        shape,
-      );
+      return new this.onnxWrapper.ort.Tensor(tensorType, data.flat(Infinity), shape);
     };
 
     let input_ids = createTensor(batch.inputsIds, [batch_size, num_tokens]);
-    let attention_mask = createTensor(batch.attentionMasks, [
-      batch_size,
-      num_tokens,
-    ]); // NOTE: why convert to bool but type is not bool?
+    let attention_mask = createTensor(batch.attentionMasks, [batch_size, num_tokens]); // NOTE: why convert to bool but type is not bool?
     let words_mask = createTensor(batch.wordsMasks, [batch_size, num_tokens]);
     let text_lengths = createTensor(batch.textLengths, [batch_size, 1]);
     let span_idx = createTensor(batch.spanIdxs, [batch_size, num_spans, 2]);
-    let span_mask = createTensor(
-      batch.spanMasks,
-      [batch_size, num_spans],
-      "bool",
-    );
+    let span_mask = createTensor(batch.spanMasks, [batch_size, num_spans], "bool");
 
     const feeds = {
       input_ids: input_ids,
@@ -111,8 +96,7 @@ export class Model {
     let batchWordsStartIdx: number[][] = [];
     let batchWordsEndIdx: number[][] = [];
     texts.forEach((text, id) => {
-      let [tokens, wordsStartIdx, wordsEndIdx] =
-        this.processor.tokenizeText(text);
+      let [tokens, wordsStartIdx, wordsEndIdx] = this.processor.tokenizeText(text);
       let num_sub_batches: number = Math.ceil(tokens.length / max_words);
 
       for (let i = 0; i < num_sub_batches; i++) {
@@ -142,8 +126,10 @@ export class Model {
       let currBatchWordsEndIdx = batchWordsEndIdx.slice(start, end);
       let currBatchIds = batchIds.slice(start, end);
 
-      let [inputTokens, textLengths, promptLengths] =
-        this.processor.prepareTextInputs(currBatchTokens, entities);
+      let [inputTokens, textLengths, promptLengths] = this.processor.prepareTextInputs(
+        currBatchTokens,
+        entities,
+      );
 
       let [inputsIds, attentionMasks, wordsMasks] = this.processor.encodeInputs(
         inputTokens,
