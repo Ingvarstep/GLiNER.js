@@ -1,24 +1,29 @@
 import ort_CPU, { InferenceSession } from "onnxruntime-web";
 import ort_WEBGPU from "onnxruntime-web/webgpu";
 import ort_WEBGL from "onnxruntime-web/webgl";
+import ort_NODE from "onnxruntime-node";
+
+type WebOrtLib =
+  | typeof import("onnxruntime-web")
+  | typeof import("onnxruntime-web/webgpu")
+  | typeof import("onnxruntime-web/webgl");
+
+type NodeOrtLib = typeof import("onnxruntime-node");
+
+type OrtLib = WebOrtLib | NodeOrtLib;
 
 export type ExecutionProvider =
   | "cpu"
   | "wasm"
   | "webgpu"
   | "webgl"
-// | "coreml"
-// | "cuda"
-// | "dml"
-// | "nnapi"
-// | "tensorrt"
-// | "webnn"
-// | "qnn"
-// | "xnnpack"
+
+export type ExecutionContext = "web" | "node";
 
 export interface IONNXSettings {
-  modelPath: string | Uint8Array;
-  executionProvider: ExecutionProvider;
+  modelPath: string | Uint8Array | ArrayBufferLike;
+  executionContext: ExecutionContext;
+  executionProvider?: ExecutionProvider;
   wasmPaths?: string;
   multiThread?: boolean;
   maxThreads?: number;
@@ -30,16 +35,38 @@ const ONNX_WASM_CDN_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/d
 const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
 export class ONNXWrapper {
-  public ort: typeof import("onnxruntime-web") | typeof import("onnxruntime-web/webgpu") = ort_CPU;
+  public ort: OrtLib = ort_CPU;
   private session: ort_CPU.InferenceSession | ort_WEBGPU.InferenceSession | null = null;
 
   constructor(public settings: IONNXSettings) {
-    if (settings.executionProvider === "webgpu") {
-      this.ort = ort_WEBGPU;
-    } else if (settings.executionProvider === "webgl") {
-      this.ort = ort_WEBGL;
+    const { executionContext, executionProvider, wasmPaths } = settings;
+    if (executionContext === "node") {
+      this.ort = ort_NODE;
+      return;
     }
-    this.ort.env.wasm.wasmPaths = settings.wasmPaths ?? DEFAULT_WASM_PATHS;
+
+    if (executionContext !== "web") {
+      throw new Error(`ONNXWrapper: Invalid execution context: '${executionContext}'`);
+    }
+
+    switch (executionProvider) {
+      case "cpu":
+      case "wasm":
+        break;
+      case "webgpu":
+        this.ort = ort_WEBGPU;
+        break;
+      case "webgl":
+        this.ort = ort_WEBGL;
+        break;
+      default:
+        throw new Error(`ONNXWrapper: Invalid execution provider: '${executionProvider}'`);
+    }
+
+    // Only set wasmPaths for web contexts that support WASM
+    if ("env" in this.ort && this.ort.env?.wasm) {
+      this.ort.env.wasm.wasmPaths = wasmPaths ?? DEFAULT_WASM_PATHS;
+    }
   }
 
   public async init() {
@@ -50,13 +77,19 @@ export class ONNXWrapper {
           const binaryURL = ONNX_WASM_CDN_URL + "ort-wasm-simd-threaded.wasm";
           const response = await fetch(binaryURL)
           const binary = await response.arrayBuffer();
-          this.ort.env.wasm.wasmBinary = binary;
+          // Only set wasmBinary for web contexts that support WASM
+          if ("env" in this.ort && this.ort.env?.wasm) {
+            this.ort.env.wasm.wasmBinary = binary;
+          }
         }
 
         if (multiThread) {
           const maxPossibleThreads = navigator.hardwareConcurrency ?? 0;
           const maxThreads = Math.min(this.settings.maxThreads ?? maxPossibleThreads, maxPossibleThreads);
-          this.ort.env.wasm.numThreads = maxThreads;
+          // Only set numThreads for web contexts that support WASM
+          if ("env" in this.ort && this.ort.env?.wasm) {
+            this.ort.env.wasm.numThreads = maxThreads;
+          }
         }
       }
 

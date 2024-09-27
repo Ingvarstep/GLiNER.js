@@ -1,5 +1,5 @@
-// import { Gliner } from "../../src";
-import { Gliner } from "../../dist";
+import { Gliner } from "../../src";
+// import { Gliner } from "../../dist";
 
 async function main(): Promise<void> {
   const gliner = new Gliner({
@@ -7,6 +7,7 @@ async function main(): Promise<void> {
     onnxSettings: {
       modelPath: "public/model.onnx",
       executionProvider: "cpu",
+      executionContext: "web",
       multiThread: true,
     },
     maxWidth: 12,
@@ -40,18 +41,17 @@ async function main(): Promise<void> {
   const texts = [input_text1];
   const entities = ["city", "country", "river", "person", "car"];
 
-  const threshold = 0.1;
   try {
     const start = performance.now();
     console.log("Running inference #1...");
-    const decoded = await gliner.inference(texts, entities, threshold);
+    const decoded = await gliner.inference({ texts, entities });
     console.log(decoded);
     const end = performance.now();
     console.log(`Inference #1 took ${end - start} ms`);
 
     const start2 = performance.now();
     console.log("Running inference #2...");
-    const decoded2 = await gliner.inference([input_text2], entities, threshold);
+    const decoded2 = await gliner.inference({ texts: [input_text2], entities });
     const end2 = performance.now();
     console.log(`Inference #2 took ${end2 - start2} ms`);
     console.log(decoded2);
