@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.17
+
+### Patch Changes
+
+- 4265f9f: removed node.js support, too many errors at the moment
+
 ## 0.0.16
 
 ### Patch Changes
