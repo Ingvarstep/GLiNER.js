@@ -1,4 +1,3 @@
-
 # 👑 GLiNER.js: Generalist and Lightweight Named Entity Recognition for JavaScript
 
 GLiNER.js is a TypeScript-based inference engine for running GLiNER (Generalist and Lightweight Named Entity Recognition) models. GLiNER can identify any entity type using a bidirectional transformer encoder, offering a practical alternative to traditional NER models and large language models.
@@ -34,13 +33,13 @@ npm install gliner
 
 ```javascript
 const gliner = new Gliner({
-    tokenizerPath: "onnx-community/gliner_small-v2",
-    onnxSettings: {
-        modelPath: "public/model.onnx",
-        executionProvider: "cpu",
-        multiThread: true,
-    },
-    maxWidth: 12,
+  tokenizerPath: "onnx-community/gliner_small-v2",
+  onnxSettings: {
+    modelPath: "public/model.onnx",
+    executionContext: "web",
+    executionProvider: "webgpu",
+  },
+  maxWidth: 12,
 });
 
 await gliner.initialize();
@@ -50,9 +49,21 @@ const texts = [input_text];
 const entities = ["city", "country", "person"];
 const threshold = 0.1;
 
-const decoded = await gliner.inference(texts, entities, threshold);
+const decoded = await gliner.inference({ texts, entities, threshold });
 console.log(decoded);
 ```
+
+### Advanced Usage
+
+#### ONNX settings API
+
+- modelPath: can be either a URL to a local model as in the basic example, or it can also be the Model itself as an array of binary data.
+- executionContext: options here are `node` or `web`
+- executionProvider: these are the same providers that ONNX web supports, currently we allow `webgpu` (recommended), `cpu`, `wasm`, `webgl` but more can be added
+- wasmPaths: Path to the wasm binaries, this can be either a URL to the binaries like a CDN url, or a local path to a folder with the binaries.
+- multiThread: wether to multithread at all, only relevent for wasm and cpu exeuction providers.
+- multiThread: When choosing the wasm or cpu provider and the web context, multiThread will allow you to specify the number of cores you want to use.
+- fetchBinary: will prefetch the binary from the default or provided wasm paths
 
 ## 🛠 Setup & Model Preparation
 
@@ -84,7 +95,7 @@ GLiNER.js offers versatile entity recognition capabilities across various domain
 3. **Intelligent Document Parsing**
 4. **Content Summarization and Insight Extraction**
 5. **Automated Content Tagging and Categorization**
-...
+   ...
 
 ## 🔧 Areas for Improvement
 
@@ -93,7 +104,6 @@ GLiNER.js offers versatile entity recognition capabilities across various domain
 - [ ] Implement bi-encoder GLiNER architecture for better scalability
 - [ ] Enable model training capabilities
 - [ ] Provide more usage examples
-
 
 ## 🙏 Acknowledgements
 
