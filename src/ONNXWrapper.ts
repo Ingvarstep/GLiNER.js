@@ -36,7 +36,7 @@ const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
 export class ONNXWrapper {
   public ort: OrtLib = ort_CPU;
-  private session: ort_CPU.InferenceSession | ort_WEBGPU.InferenceSession | null = null;
+  private session: ort_CPU.InferenceSession | ort_WEBGPU.InferenceSession | ort_WEBGL.InferenceSession | null = null;
 
   constructor(public settings: IONNXSettings) {
     const { executionContext, executionProvider, wasmPaths } = settings;
