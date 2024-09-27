@@ -105,6 +105,10 @@ GLiNER.js offers versatile entity recognition capabilities across various domain
 - [ ] Enable model training capabilities
 - [ ] Provide more usage examples
 
+## Creating a PR
+
+- for any changes, remember to run `pnpm changeset`, otherwise there will not be a version bump and the PR Github Action will fail.
+
 ## 🙏 Acknowledgements
 
 - [GLiNER original authors](https://github.com/urchade/GLiNER)
