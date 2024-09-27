@@ -46,9 +46,10 @@ jobs:
         id: check_changesets
         run: |
           if pnpm changeset status | grep -q "No unreleased changesets"; then
-            echo "No unreleased changesets found. Continuing with standard checks."
+            echo "No unreleased changesets found, create a changeset using pnpm changeset."
+            exit 1
           else
             echo "Changesets found, version bump possible."
-            exit 1
+            exit 0
           fi
         continue-on-error: false
