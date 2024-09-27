@@ -8,7 +8,7 @@ export class Model {
     private processor: any,
     private decoder: any,
     private onnxWrapper: ONNXWrapper,
-  ) { }
+  ) {}
 
   async initialize(): Promise<void> {
     await this.onnxWrapper.init();
