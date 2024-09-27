@@ -1,10 +1,17 @@
 // Check if one span is nested inside the other
 const isNested = (idx1: number[], idx2: number[]): boolean => {
-    return (idx1[0] <= idx2[0] && idx1[1] >= idx2[1]) || (idx2[0] <= idx1[0] && idx2[1] >= idx1[1]);
+    return (
+        (idx1[0] <= idx2[0] && idx1[1] >= idx2[1]) ||
+        (idx2[0] <= idx1[0] && idx2[1] >= idx1[1])
+    );
 };
 
 // Check for any overlap between two spans
-const hasOverlapping = (idx1: number[], idx2: number[], multiLabel: boolean = false): boolean => {
+const hasOverlapping = (
+    idx1: number[],
+    idx2: number[],
+    multiLabel: boolean = false,
+): boolean => {
     if (idx1.slice(0, 2).toString() === idx2.slice(0, 2).toString()) {
         return !multiLabel;
     }
@@ -15,7 +22,11 @@ const hasOverlapping = (idx1: number[], idx2: number[], multiLabel: boolean = fa
 };
 
 // Check if spans overlap but are not nested inside each other
-const hasOverlappingNested = (idx1: number[], idx2: number[], multiLabel: boolean = false): boolean => {
+const hasOverlappingNested = (
+    idx1: number[],
+    idx2: number[],
+    multiLabel: boolean = false,
+): boolean => {
     if (idx1.slice(0, 2).toString() === idx2.slice(0, 2).toString()) {
         return !multiLabel;
     }
@@ -42,13 +53,21 @@ abstract class BaseDecoder {
 
     abstract decode(...args: any[]): any;
 
-    greedySearch(spans: number[][], flatNer: boolean = true, multiLabel: boolean = false): number[][] {
+    greedySearch(
+        spans: number[][],
+        flatNer: boolean = true,
+        multiLabel: boolean = false,
+    ): number[][] {
         const hasOv = flatNer
-            ? (idx1: number[], idx2: number[]) => hasOverlapping(idx1, idx2, multiLabel)
-            : (idx1: number[], idx2: number[]) => hasOverlappingNested(idx1, idx2, multiLabel);
+            ? (idx1: number[], idx2: number[]) =>
+                hasOverlapping(idx1, idx2, multiLabel)
+            : (idx1: number[], idx2: number[]) =>
+                hasOverlappingNested(idx1, idx2, multiLabel);
 
         const newList: number[][] = [];
-        const spanProb = spans.slice().sort((a, b) => b[b.length - 1] - a[a.length - 1]); // Sort by score
+        const spanProb = spans
+            .slice()
+            .sort((a, b) => b[b.length - 1] - a[a.length - 1]); // Sort by score
 
         for (let i = 0; i < spans.length; i++) {
             const b = spanProb[i];
@@ -83,7 +102,7 @@ export class SpanDecoder extends BaseDecoder {
         modelOutput: number[],
         flatNer: boolean = false,
         threshold: number = 0.5,
-        multiLabel: boolean = false
+        multiLabel: boolean = false,
     ): number[][][] {
         const spans: any[][][] = [];
 
@@ -98,7 +117,7 @@ export class SpanDecoder extends BaseDecoder {
         modelOutput.forEach((value, id) => {
             let batch = Math.floor(id / batchPadding);
             let startToken = Math.floor(id / startTokenPadding) % inputLength;
-            let endToken = startToken + Math.floor(id / endTokenPadding) % maxWidth;
+            let endToken = startToken + (Math.floor(id / endTokenPadding) % maxWidth);
             let entity = id % numEntities;
 
             let prob = sigmoid(value);
@@ -117,7 +136,7 @@ export class SpanDecoder extends BaseDecoder {
                     startIdx,
                     endIdx,
                     idToClass[entity + 1],
-                    prob
+                    prob,
                 ]);
             }
         });

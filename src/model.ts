@@ -7,11 +7,11 @@ export class Model {
     private config: any,
     private processor: any,
     private decoder: any,
-    private onnxWrapper: ONNXWrapper
+    private onnxWrapper: ONNXWrapper,
   ) { }
 
   async initialize(): Promise<void> {
-    await this.onnxWrapper.init()
+    await this.onnxWrapper.init();
   }
 
   prepareInputs(batch: any): Record<string, ort.Tensor> {
@@ -22,17 +22,29 @@ export class Model {
     const createTensor = (
       data: any[],
       shape: number[],
-      tensorType: any = "int64"
+      tensorType: any = "int64",
     ): ort.Tensor => {
-      return new this.onnxWrapper.ort.Tensor(tensorType, data.flat(Infinity), shape);
+      // @ts-ignore // NOTE: node types not working
+      return new this.onnxWrapper.ort.Tensor(
+        tensorType,
+        data.flat(Infinity),
+        shape,
+      );
     };
 
     let input_ids = createTensor(batch.inputsIds, [batch_size, num_tokens]);
-    let attention_mask = createTensor(batch.attentionMasks, [batch_size, num_tokens]); // NOTE: why convert to bool but type is not bool?
+    let attention_mask = createTensor(batch.attentionMasks, [
+      batch_size,
+      num_tokens,
+    ]); // NOTE: why convert to bool but type is not bool?
     let words_mask = createTensor(batch.wordsMasks, [batch_size, num_tokens]);
     let text_lengths = createTensor(batch.textLengths, [batch_size, 1]);
     let span_idx = createTensor(batch.spanIdxs, [batch_size, num_spans, 2]);
-    let span_mask = createTensor(batch.spanMasks, [batch_size, num_spans], "bool");
+    let span_mask = createTensor(
+      batch.spanMasks,
+      [batch_size, num_spans],
+      "bool",
+    );
 
     const feeds = {
       input_ids: input_ids,
@@ -51,7 +63,7 @@ export class Model {
     entities: string[],
     flatNer: boolean = false,
     threshold: number = 0.5,
-    multiLabel: boolean = false
+    multiLabel: boolean = false,
   ): Promise<RawInferenceResult> {
     let batch = this.processor.prepareBatch(texts, entities);
     let feeds = this.prepareInputs(batch);
@@ -77,7 +89,7 @@ export class Model {
       modelOutput,
       flatNer,
       threshold,
-      multiLabel
+      multiLabel,
     );
 
     return decodedSpans;
@@ -92,7 +104,6 @@ export class Model {
     batch_size: number = 4,
     max_words: number = 512,
   ): Promise<RawInferenceResult> {
-
     const { classToId, idToClass } = this.processor.createMappings(entities);
 
     let batchIds: number[] = [];
@@ -100,7 +111,8 @@ export class Model {
     let batchWordsStartIdx: number[][] = [];
     let batchWordsEndIdx: number[][] = [];
     texts.forEach((text, id) => {
-      let [tokens, wordsStartIdx, wordsEndIdx] = this.processor.tokenizeText(text);
+      let [tokens, wordsStartIdx, wordsEndIdx] =
+        this.processor.tokenizeText(text);
       let num_sub_batches: number = Math.ceil(tokens.length / max_words);
 
       for (let i = 0; i < num_sub_batches; i++) {
@@ -130,15 +142,22 @@ export class Model {
       let currBatchWordsEndIdx = batchWordsEndIdx.slice(start, end);
       let currBatchIds = batchIds.slice(start, end);
 
-      let [inputTokens, textLengths, promptLengths] = this.processor.prepareTextInputs(currBatchTokens, entities);
+      let [inputTokens, textLengths, promptLengths] =
+        this.processor.prepareTextInputs(currBatchTokens, entities);
 
-      let [inputsIds, attentionMasks, wordsMasks] = this.processor.encodeInputs(inputTokens, promptLengths);
+      let [inputsIds, attentionMasks, wordsMasks] = this.processor.encodeInputs(
+        inputTokens,
+        promptLengths,
+      );
 
       inputsIds = this.processor.padArray(inputsIds);
       attentionMasks = this.processor.padArray(attentionMasks);
       wordsMasks = this.processor.padArray(wordsMasks);
 
-      let { spanIdxs, spanMasks } = this.processor.prepareSpans(currBatchTokens, this.config["max_width"]);
+      let { spanIdxs, spanMasks } = this.processor.prepareSpans(
+        currBatchTokens,
+        this.config["max_width"],
+      );
 
       spanIdxs = this.processor.padArray(spanIdxs, 3);
       spanMasks = this.processor.padArray(spanMasks);
@@ -179,7 +198,7 @@ export class Model {
         modelOutput,
         flatNer,
         threshold,
-        multiLabel
+        multiLabel,
       );
 
       for (let i = 0; i < currBatchIds.length; i++) {
@@ -190,5 +209,4 @@ export class Model {
 
     return finalDecodedSpans;
   }
-
 }

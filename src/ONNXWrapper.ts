@@ -12,11 +12,7 @@ type NodeOrtLib = typeof import("onnxruntime-node");
 
 type OrtLib = WebOrtLib | NodeOrtLib;
 
-export type ExecutionProvider =
-  | "cpu"
-  | "wasm"
-  | "webgpu"
-  | "webgl"
+export type ExecutionProvider = "cpu" | "wasm" | "webgpu" | "webgl";
 
 export type ExecutionContext = "web" | "node";
 
@@ -31,12 +27,17 @@ export interface IONNXSettings {
 }
 
 // NOTE: Version needs to match installed package!
-const ONNX_WASM_CDN_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
+const ONNX_WASM_CDN_URL =
+  "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
 const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
 export class ONNXWrapper {
   public ort: OrtLib = ort_CPU;
-  private session: ort_CPU.InferenceSession | ort_WEBGPU.InferenceSession | ort_WEBGL.InferenceSession | null = null;
+  private session:
+    | ort_CPU.InferenceSession
+    | ort_WEBGPU.InferenceSession
+    | ort_WEBGL.InferenceSession
+    | null = null;
 
   constructor(public settings: IONNXSettings) {
     const { executionContext, executionProvider, wasmPaths } = settings;
@@ -46,7 +47,9 @@ export class ONNXWrapper {
     }
 
     if (executionContext !== "web") {
-      throw new Error(`ONNXWrapper: Invalid execution context: '${executionContext}'`);
+      throw new Error(
+        `ONNXWrapper: Invalid execution context: '${executionContext}'`,
+      );
     }
 
     switch (executionProvider) {
@@ -60,7 +63,9 @@ export class ONNXWrapper {
         this.ort = ort_WEBGL;
         break;
       default:
-        throw new Error(`ONNXWrapper: Invalid execution provider: '${executionProvider}'`);
+        throw new Error(
+          `ONNXWrapper: Invalid execution provider: '${executionProvider}'`,
+        );
     }
 
     // Only set wasmPaths for web contexts that support WASM
@@ -71,18 +76,23 @@ export class ONNXWrapper {
 
   public async init() {
     if (!this.session) {
-      const { modelPath, executionProvider, fetchBinary, multiThread } = this.settings;
+      const { modelPath, executionProvider, fetchBinary, multiThread } =
+        this.settings;
       if (executionProvider === "cpu" || executionProvider === "wasm") {
         if (fetchBinary && "env" in this.ort && this.ort.env?.wasm) {
-          const binaryURL = this.ort.env.wasm.wasmPaths + "ort-wasm-simd-threaded.wasm";
-          const response = await fetch(binaryURL)
+          const binaryURL =
+            this.ort.env.wasm.wasmPaths + "ort-wasm-simd-threaded.wasm";
+          const response = await fetch(binaryURL);
           const binary = await response.arrayBuffer();
           this.ort.env.wasm.wasmBinary = binary;
         }
 
         if (multiThread && "env" in this.ort && this.ort.env?.wasm) {
           const maxPossibleThreads = navigator.hardwareConcurrency ?? 0;
-          const maxThreads = Math.min(this.settings.maxThreads ?? maxPossibleThreads, maxPossibleThreads);
+          const maxThreads = Math.min(
+            this.settings.maxThreads ?? maxPossibleThreads,
+            maxPossibleThreads,
+          );
           this.ort.env.wasm.numThreads = maxThreads;
         }
       }
@@ -94,9 +104,14 @@ export class ONNXWrapper {
     }
   }
 
-  public async run(feeds: InferenceSession.FeedsType, options: InferenceSession.RunOptions = {}): Promise<InferenceSession.ReturnType> {
+  public async run(
+    feeds: InferenceSession.FeedsType,
+    options: InferenceSession.RunOptions = {},
+  ): Promise<InferenceSession.ReturnType> {
     if (!this.session) {
-      throw new Error("ONNXWrapper: Session not initialized. Please call init() first.")
+      throw new Error(
+        "ONNXWrapper: Session not initialized. Please call init() first.",
+      );
     }
 
     return await this.session.run(feeds, options);
