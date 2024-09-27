@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.16
+
+### Patch Changes
+
+- bf6a8e2: small refactor of onnx, add onnx settings readme, add node support(untested)
+
 ## 0.0.15
 
 ### Patch Changes
