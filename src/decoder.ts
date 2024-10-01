@@ -1,3 +1,7 @@
+import { RawInferenceResult } from "./Gliner";
+
+type Spans = [string, number, number, string, number][];
+
 // Check if one span is nested inside the other
 const isNested = (idx1: number[], idx2: number[]): boolean => {
   return (idx1[0] <= idx2[0] && idx1[1] >= idx2[1]) || (idx2[0] <= idx1[0] && idx2[1] >= idx1[1]);
@@ -46,23 +50,21 @@ abstract class BaseDecoder {
 
   abstract decode(...args: any[]): any;
 
-  greedySearch(
-    spans: number[][],
-    flatNer: boolean = true,
-    multiLabel: boolean = false,
-  ): number[][] {
+  greedySearch(spans: Spans, flatNer: boolean = true, multiLabel: boolean = false): Spans {
     const hasOv = flatNer
       ? (idx1: number[], idx2: number[]) => hasOverlapping(idx1, idx2, multiLabel)
       : (idx1: number[], idx2: number[]) => hasOverlappingNested(idx1, idx2, multiLabel);
 
-    const newList: number[][] = [];
-    const spanProb = spans.slice().sort((a, b) => b[b.length - 1] - a[a.length - 1]); // Sort by score
+    const newList: Spans = [];
+    // Sort spans by their score (last element) in descending order
+    const spanProb: Spans = spans.slice().sort((a, b) => b[b.length-1] - a[a.length - 1]);
 
-    for (let i = 0; i < spans.length; i++) {
+    for (let i = 0; i < spanProb.length; i++) {
       const b = spanProb[i];
       let flag = false;
       for (const newSpan of newList) {
-        if (hasOv(b.slice(0, -1), newSpan)) {
+        // Compare only start and end indices
+        if (hasOv(b.slice(1, 3), newSpan.slice(1, 3))) {
           flag = true;
           break;
         }
@@ -72,10 +74,10 @@ abstract class BaseDecoder {
       }
     }
 
-    return newList.sort((a, b) => a[0] - b[0]); // Sort by start position
+    // Sort newList by start position (second element) for correct ordering
+    return newList.sort((a, b) => a[1] - b[1]);
   }
-}
-
+};
 // SpanDecoder subclass
 export class SpanDecoder extends BaseDecoder {
   decode(
@@ -83,7 +85,7 @@ export class SpanDecoder extends BaseDecoder {
     inputLength: number,
     maxWidth: number,
     numEntities: number,
-    texts: string[][],
+    texts: string[],
     batchIds: number[],
     batchWordsStartIdx: number[][],
     batchWordsEndIdx: number[][],
@@ -92,8 +94,8 @@ export class SpanDecoder extends BaseDecoder {
     flatNer: boolean = false,
     threshold: number = 0.5,
     multiLabel: boolean = false,
-  ): number[][][] {
-    const spans: any[][][] = [];
+  ): RawInferenceResult {
+    const spans: RawInferenceResult= [];
 
     for (let batch = 0; batch < batchSize; batch++) {
       spans.push([]);
@@ -116,20 +118,20 @@ export class SpanDecoder extends BaseDecoder {
         startToken < batchWordsStartIdx[batch].length &&
         endToken < batchWordsEndIdx[batch].length
       ) {
-        let globalBatch = batchIds[batch];
-        let startIdx = batchWordsStartIdx[batch][startToken];
-        let endIdx = batchWordsEndIdx[batch][endToken];
-        let spanText = texts[globalBatch].slice(startIdx, endIdx);
+        let globalBatch: number = batchIds[batch];
+        let startIdx: number = batchWordsStartIdx[batch][startToken];
+        let endIdx: number = batchWordsEndIdx[batch][endToken];
+        let spanText: string = texts[globalBatch].slice(startIdx, endIdx);
         spans[batch].push([spanText, startIdx, endIdx, idToClass[entity + 1], prob]);
       }
     });
-    const allSelectedSpans: number[][][] = [];
+    const allSelectedSpans: RawInferenceResult = [];
 
     spans.forEach((resI, id) => {
       const selectedSpans = this.greedySearch(resI, flatNer, multiLabel);
       allSelectedSpans.push(selectedSpans);
     });
 
-    return spans;
+    return allSelectedSpans;
   }
 }
