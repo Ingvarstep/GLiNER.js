@@ -210,3 +210,32 @@ export class SpanProcessor extends Processor {
     };
   }
 }
+
+export class TokenProcessor extends Processor {
+  constructor(config: any, tokenizer: any, wordsSplitter: WhitespaceTokenSplitter) {
+    super(config, tokenizer, wordsSplitter);
+  }
+
+  prepareBatch(texts: string[], entities: string[]): Record<string, any> {
+    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx]: [string[][], number[][], number[][]] = this.batchTokenizeText(texts);
+    const { idToClass }:  {idToClass: Record<number, string>} = this.createMappings(entities);
+    const [inputTokens, textLengths, promptLengths]:  [string[][], number[], number[]] = this.prepareTextInputs(batchTokens, entities);
+
+    let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] = this.encodeInputs(inputTokens, promptLengths);
+
+    inputsIds = this.padArray(inputsIds);
+    attentionMasks = this.padArray(attentionMasks);
+    wordsMasks = this.padArray(wordsMasks);
+
+    return {
+      inputsIds: inputsIds,
+      attentionMasks: attentionMasks,
+      wordsMasks: wordsMasks,
+      textLengths: textLengths,
+      idToClass: idToClass,
+      batchTokens: batchTokens,
+      batchWordsStartIdx: batchWordsStartIdx,
+      batchWordsEndIdx: batchWordsEndIdx,
+    };
+  }
+}

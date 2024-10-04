@@ -135,3 +135,102 @@ export class SpanDecoder extends BaseDecoder {
     return allSelectedSpans;
   }
 }
+
+// TokenDecoder subclass
+export class TokenDecoder extends BaseDecoder {
+  decode(
+    batchSize: number,
+    inputLength: number,
+    numEntities: number,
+    texts: string[],
+    batchIds: number[],
+    batchWordsStartIdx: number[][],
+    batchWordsEndIdx: number[][],
+    idToClass: Record<number, string>,
+    modelOutput: number[],
+    flatNer: boolean = false,
+    threshold: number = 0.5,
+    multiLabel: boolean = false,
+  ): RawInferenceResult {
+
+    const positionPadding = batchSize * inputLength * numEntities;
+    const batchPadding = inputLength * numEntities;
+    const tokenPadding = numEntities;
+
+    let selectedStarts: any = [];
+    let selectedEnds: any = [];
+    let insideScore: number[][][] = [];
+
+    for (let id = 0; id < batchSize; id++) {
+      selectedStarts.push([]);
+      selectedEnds.push([]);
+      let batches: number[][] = [];
+      for (let j = 0; j < inputLength; j++) {
+        let sequence: number[] = Array(numEntities).fill(0);
+        batches.push(sequence);
+      }
+      insideScore.push(batches);
+    }
+
+    modelOutput.forEach((value, id) => {
+      let position = Math.floor(id / positionPadding);
+      let batch = Math.floor(id / batchPadding) % batchSize;
+      let token = Math.floor(id / tokenPadding) % inputLength;
+      let entity = id % numEntities;
+
+      let prob = sigmoid(value);
+
+      if (prob >= threshold && token < batchWordsEndIdx[batch].length) {
+        if (position == 0) {
+          selectedStarts[batch].push([token, entity]);
+        } else if (position == 1) {
+          selectedEnds[batch].push([token, entity]);
+        }
+      }
+      if (position == 2) {
+        insideScore[batch][token][entity] = prob;
+      }
+    });
+
+    const spans: RawInferenceResult = [];
+
+    for (let batch = 0; batch < batchSize; batch++) {
+      let batchSpans: Spans = [];
+
+      for (let [start, clsSt] of selectedStarts[batch]) {
+        for (let [end, clsEd] of selectedEnds[batch]) {
+          if (end >= start && clsSt === clsEd) {
+            // Calculate the inside span scores
+            const insideSpanScores = insideScore[batch]
+              .slice(start, end + 1)
+              .map(tokenScores => tokenScores[clsSt]);
+
+            // Check if all scores within the span are above the threshold
+            if (insideSpanScores.some(score => score < threshold)) continue;
+
+            // Calculate mean span score
+            const spanScore = insideSpanScores.reduce((a, b) => a + b, 0) / insideSpanScores.length;
+
+            // Extract the start and end indices and the text for the span
+            let startIdx = batchWordsStartIdx[batch][start];
+            let endIdx = batchWordsEndIdx[batch][end];
+            let spanText = texts[batchIds[batch]].slice(startIdx, endIdx);
+
+            // Push the span with its score and class
+            batchSpans.push([spanText, startIdx, endIdx, idToClass[clsSt + 1], spanScore]);
+          }
+        }
+      }
+      spans.push(batchSpans);
+    }
+
+    const allSelectedSpans: RawInferenceResult = [];
+
+    spans.forEach((resI, id) => {
+      const selectedSpans = this.greedySearch(resI, flatNer, multiLabel);
+      allSelectedSpans.push(selectedSpans);
+    });
+
+    return allSelectedSpans;
+  }
+}
