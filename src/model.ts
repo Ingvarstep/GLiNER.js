@@ -258,8 +258,107 @@ export class TokenModel extends Model {
 
     return decodedSpans;
   }
-  async inference_with_chunking(): Promise<RawInferenceResult> {
-    let res: RawInferenceResult = [];
-    return res;
+  async inference_with_chunking(
+    texts: string[],
+    entities: string[],
+    flatNer: boolean = true,
+    threshold: number = 0.5,
+    multiLabel: boolean = false,
+    batch_size: number = 4,
+    max_words: number = 512,
+  ): Promise<RawInferenceResult> {
+    const { idToClass }: { 
+          idToClass: Record<number, string> } = this.processor.createMappings(entities);
+    let batchIds: number[] = [];
+    let batchTokens: string[][] = [];
+    let batchWordsStartIdx: number[][] = [];
+    let batchWordsEndIdx: number[][] = [];
+    texts.forEach((text, id) => {
+      let [tokens, wordsStartIdx, wordsEndIdx]: [string[], number[], number[]] = this.processor.tokenizeText(text);
+      let num_sub_batches: number = Math.ceil(tokens.length / max_words);
+
+      for (let i = 0; i < num_sub_batches; i++) {
+        let start:number = i * max_words;
+        let end: number = Math.min((i + 1) * max_words, tokens.length);
+
+        batchIds.push(id);
+        batchTokens.push(tokens.slice(start, end));
+        batchWordsStartIdx.push(wordsStartIdx.slice(start, end));
+        batchWordsEndIdx.push(wordsEndIdx.slice(start, end));
+      }
+    });
+
+    let num_batches: number = Math.ceil(batchIds.length / batch_size);
+
+    let finalDecodedSpans: RawInferenceResult = [];
+    for (let id = 0; id < texts.length; id++) {
+      finalDecodedSpans.push([]);
+    }
+
+    for (let batch_id = 0; batch_id < num_batches; batch_id++) {
+      let start: number = batch_id * batch_size;
+      let end: number = Math.min((batch_id + 1) * batch_size, batchIds.length);
+
+      let currBatchTokens: string[][] = batchTokens.slice(start, end);
+      let currBatchWordsStartIdx: number[][] = batchWordsStartIdx.slice(start, end);
+      let currBatchWordsEndIdx: number[][] = batchWordsEndIdx.slice(start, end);
+      let currBatchIds: number[] = batchIds.slice(start, end);
+
+      let [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] = this.processor.prepareTextInputs(
+        currBatchTokens,
+        entities,
+      );
+
+      let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] = this.processor.encodeInputs(
+        inputTokens,
+        promptLengths,
+      );
+
+      inputsIds = this.processor.padArray(inputsIds);
+      attentionMasks = this.processor.padArray(attentionMasks);
+      wordsMasks = this.processor.padArray(wordsMasks);
+
+      let batch: Record<string, any> = {
+        inputsIds: inputsIds,
+        attentionMasks: attentionMasks,
+        wordsMasks: wordsMasks,
+        textLengths: textLengths,
+        idToClass: idToClass,
+        batchTokens: currBatchTokens,
+        batchWordsStartIdx: currBatchWordsStartIdx,
+        batchWordsEndIdx: currBatchWordsEndIdx,
+      };
+
+      let feeds: Record<string, ort.Tensor> = this.prepareInputs(batch);
+      const results: Record<string, ort.Tensor>  = await this.onnxWrapper.run(feeds);
+      const modelOutput: number[] = results["logits"].data;
+      // const modelOutput = results.logits.data as number[];
+
+      const batchSize: number = batch.batchTokens.length;
+      const inputLength: number = Math.max(...batch.textLengths);
+      const numEntities: number = entities.length;
+
+      const decodedSpans: RawInferenceResult = this.decoder.decode(
+        batchSize,
+        inputLength,
+        numEntities,
+        texts,
+        currBatchIds,
+        batch.batchWordsStartIdx,
+        batch.batchWordsEndIdx,
+        batch.idToClass,
+        modelOutput,
+        flatNer,
+        threshold,
+        multiLabel,
+      );
+
+      for (let i = 0; i < currBatchIds.length; i++) {
+        const originalTextId = currBatchIds[i];
+        finalDecodedSpans[originalTextId].push(...decodedSpans[i]);
+      }
+    }
+
+    return finalDecodedSpans;
   }
 }

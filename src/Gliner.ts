@@ -22,6 +22,7 @@ export interface IInference {
   entities: string[];
   flatNer?: boolean;
   threshold?: number;
+  multiLabel?: boolean;
 }
 
 export type RawInferenceResult = [string, number, number, string, number][][];
@@ -76,14 +77,15 @@ export class Gliner {
   async inference({
     texts,
     entities,
-    flatNer = false,
+    flatNer = true,
     threshold = 0.5,
+    multiLabel = false
   }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
 
-    const result = await this.model.inference(texts, entities, flatNer, threshold);
+    const result = await this.model.inference(texts, entities, flatNer, threshold, multiLabel);
     return this.mapRawResultToResponse(result);
   }
 
