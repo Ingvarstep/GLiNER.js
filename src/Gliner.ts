@@ -1,7 +1,7 @@
 import { AutoTokenizer, env } from "@xenova/transformers";
-import { Model } from "./model";
-import { WhitespaceTokenSplitter, SpanProcessor } from "./processor";
-import { SpanDecoder } from "./decoder";
+import { SpanModel, TokenModel } from "./model";
+import { WhitespaceTokenSplitter, SpanProcessor, TokenProcessor } from "./processor";
+import { SpanDecoder, TokenDecoder } from "./decoder";
 import { IONNXSettings, ONNXWrapper } from "./ONNXWrapper";
 
 export interface ITransformersSettings {
@@ -14,6 +14,7 @@ export interface InitConfig {
   onnxSettings: IONNXSettings;
   transformersSettings?: ITransformersSettings;
   maxWidth?: number;
+  modelType?: string;
 }
 
 export interface IInference {
@@ -21,6 +22,7 @@ export interface IInference {
   entities: string[];
   flatNer?: boolean;
   threshold?: number;
+  multiLabel?: boolean;
 }
 
 export type RawInferenceResult = [string, number, number, string, number][][];
@@ -36,13 +38,17 @@ export type InferenceResultSingle = IEntityResult[];
 export type InferenceResultMultiple = InferenceResultSingle[];
 
 export class Gliner {
-  private model: Model | null = null;
+  private model: SpanModel | TokenModel | null = null;
 
   constructor(private config: InitConfig) {
     env.allowLocalModels = config.transformersSettings?.allowLocalModels ?? false;
     env.useBrowserCache = config.transformersSettings?.useBrowserCache ?? false;
 
-    this.config = { ...config, maxWidth: config.maxWidth || 12 };
+    this.config = {
+      ...config,
+      maxWidth: config.maxWidth || 12,
+      modelType: config.modelType || "span-level",
+    };
   }
 
   async initialize(): Promise<void> {
@@ -53,25 +59,36 @@ export class Gliner {
     const onnxWrapper = new ONNXWrapper(onnxSettings);
 
     const wordSplitter = new WhitespaceTokenSplitter();
-    const processor = new SpanProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
-    const decoder = new SpanDecoder({ max_width: maxWidth });
 
-    this.model = new Model({ max_width: maxWidth }, processor, decoder, onnxWrapper);
+    if (this.config.modelType == "span-level") {
+      console.log("Initializing Span-level Model...");
+      const processor = new SpanProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
+      const decoder = new SpanDecoder({ max_width: maxWidth });
 
+      this.model = new SpanModel({ max_width: maxWidth }, processor, decoder, onnxWrapper);
+    } else {
+      console.log("Initializing Token-level Model...");
+
+      const processor = new TokenProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
+      const decoder = new TokenDecoder({ max_width: maxWidth });
+
+      this.model = new TokenModel({ max_width: maxWidth }, processor, decoder, onnxWrapper);
+    }
     await this.model.initialize();
   }
 
   async inference({
     texts,
     entities,
-    flatNer = false,
+    flatNer = true,
     threshold = 0.5,
+    multiLabel = false,
   }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");
     }
 
-    const result = await this.model.inference(texts, entities, flatNer, threshold);
+    const result = await this.model.inference(texts, entities, flatNer, threshold, multiLabel);
     return this.mapRawResultToResponse(result);
   }
 

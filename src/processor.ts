@@ -132,13 +132,13 @@ export class Processor {
     return [inputsIds, attentionMasks, wordsMasks];
   }
 
-  padArray(arr: any[], dimensions: number = 2): any[] {
+  padArray(arr: any[], dimensions: number = 2): any[][] {
     if (dimensions < 2 || dimensions > 3) {
       throw new Error("Only 2D and 3D arrays are supported");
     }
 
-    const maxLength = Math.max(...arr.map((subArr: any[]) => subArr.length));
-    const finalDim = dimensions === 3 ? arr[0][0].length : 0;
+    const maxLength: number = Math.max(...arr.map((subArr: any[]) => subArr.length));
+    const finalDim: number = dimensions === 3 ? arr[0][0].length : 0;
 
     return arr.map((subArr: any[]) => {
       const padCount = maxLength - subArr.length;
@@ -161,7 +161,7 @@ export class SpanProcessor extends Processor {
     let spanMasks: boolean[][] = [];
 
     batchTokens.forEach((tokens) => {
-      let textLength = tokens.length;
+      let textLength: number = tokens.length;
       let spanIdx: number[][] = [];
       let spanMask: boolean[] = [];
 
@@ -180,18 +180,25 @@ export class SpanProcessor extends Processor {
     return { spanIdxs, spanMasks };
   }
 
-  prepareBatch(texts: string[], entities: string[]): any {
-    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx] = this.batchTokenizeText(texts);
-    const { idToClass } = this.createMappings(entities);
-    const [inputTokens, textLengths, promptLengths] = this.prepareTextInputs(batchTokens, entities);
+  prepareBatch(texts: string[], entities: string[]): Record<string, any> {
+    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx]: [
+      string[][],
+      number[][],
+      number[][],
+    ] = this.batchTokenizeText(texts);
+    const { idToClass }: { idToClass: Record<number, string> } = this.createMappings(entities);
+    const [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] =
+      this.prepareTextInputs(batchTokens, entities);
 
-    let [inputsIds, attentionMasks, wordsMasks] = this.encodeInputs(inputTokens, promptLengths);
+    let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] =
+      this.encodeInputs(inputTokens, promptLengths);
 
     inputsIds = this.padArray(inputsIds);
     attentionMasks = this.padArray(attentionMasks);
     wordsMasks = this.padArray(wordsMasks);
 
-    let { spanIdxs, spanMasks } = this.prepareSpans(batchTokens, this.config["max_width"]);
+    let { spanIdxs, spanMasks }: { spanIdxs: number[][][]; spanMasks: boolean[][] } =
+      this.prepareSpans(batchTokens, this.config["max_width"]);
 
     spanIdxs = this.padArray(spanIdxs, 3);
     spanMasks = this.padArray(spanMasks);
@@ -203,6 +210,41 @@ export class SpanProcessor extends Processor {
       textLengths: textLengths,
       spanIdxs: spanIdxs,
       spanMasks: spanMasks,
+      idToClass: idToClass,
+      batchTokens: batchTokens,
+      batchWordsStartIdx: batchWordsStartIdx,
+      batchWordsEndIdx: batchWordsEndIdx,
+    };
+  }
+}
+
+export class TokenProcessor extends Processor {
+  constructor(config: any, tokenizer: any, wordsSplitter: WhitespaceTokenSplitter) {
+    super(config, tokenizer, wordsSplitter);
+  }
+
+  prepareBatch(texts: string[], entities: string[]): Record<string, any> {
+    const [batchTokens, batchWordsStartIdx, batchWordsEndIdx]: [
+      string[][],
+      number[][],
+      number[][],
+    ] = this.batchTokenizeText(texts);
+    const { idToClass }: { idToClass: Record<number, string> } = this.createMappings(entities);
+    const [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] =
+      this.prepareTextInputs(batchTokens, entities);
+
+    let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] =
+      this.encodeInputs(inputTokens, promptLengths);
+
+    inputsIds = this.padArray(inputsIds);
+    attentionMasks = this.padArray(attentionMasks);
+    wordsMasks = this.padArray(wordsMasks);
+
+    return {
+      inputsIds: inputsIds,
+      attentionMasks: attentionMasks,
+      wordsMasks: wordsMasks,
+      textLengths: textLengths,
       idToClass: idToClass,
       batchTokens: batchTokens,
       batchWordsStartIdx: batchWordsStartIdx,

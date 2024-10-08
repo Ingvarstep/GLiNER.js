@@ -1,3 +1,7 @@
+import { RawInferenceResult } from "./Gliner";
+
+type Spans = [string, number, number, string, number][];
+
 // Check if one span is nested inside the other
 const isNested = (idx1: number[], idx2: number[]): boolean => {
   return (idx1[0] <= idx2[0] && idx1[1] >= idx2[1]) || (idx2[0] <= idx1[0] && idx2[1] >= idx1[1]);
@@ -46,23 +50,21 @@ abstract class BaseDecoder {
 
   abstract decode(...args: any[]): any;
 
-  greedySearch(
-    spans: number[][],
-    flatNer: boolean = true,
-    multiLabel: boolean = false,
-  ): number[][] {
+  greedySearch(spans: Spans, flatNer: boolean = true, multiLabel: boolean = false): Spans {
     const hasOv = flatNer
       ? (idx1: number[], idx2: number[]) => hasOverlapping(idx1, idx2, multiLabel)
       : (idx1: number[], idx2: number[]) => hasOverlappingNested(idx1, idx2, multiLabel);
 
-    const newList: number[][] = [];
-    const spanProb = spans.slice().sort((a, b) => b[b.length - 1] - a[a.length - 1]); // Sort by score
+    const newList: Spans = [];
+    // Sort spans by their score (last element) in descending order
+    const spanProb: Spans = spans.slice().sort((a, b) => b[b.length - 1] - a[a.length - 1]);
 
-    for (let i = 0; i < spans.length; i++) {
+    for (let i = 0; i < spanProb.length; i++) {
       const b = spanProb[i];
       let flag = false;
       for (const newSpan of newList) {
-        if (hasOv(b.slice(0, -1), newSpan)) {
+        // Compare only start and end indices
+        if (hasOv(b.slice(1, 3), newSpan.slice(1, 3))) {
           flag = true;
           break;
         }
@@ -72,10 +74,10 @@ abstract class BaseDecoder {
       }
     }
 
-    return newList.sort((a, b) => a[0] - b[0]); // Sort by start position
+    // Sort newList by start position (second element) for correct ordering
+    return newList.sort((a, b) => a[1] - b[1]);
   }
 }
-
 // SpanDecoder subclass
 export class SpanDecoder extends BaseDecoder {
   decode(
@@ -83,7 +85,7 @@ export class SpanDecoder extends BaseDecoder {
     inputLength: number,
     maxWidth: number,
     numEntities: number,
-    texts: string[][],
+    texts: string[],
     batchIds: number[],
     batchWordsStartIdx: number[][],
     batchWordsEndIdx: number[][],
@@ -92,8 +94,8 @@ export class SpanDecoder extends BaseDecoder {
     flatNer: boolean = false,
     threshold: number = 0.5,
     multiLabel: boolean = false,
-  ): number[][][] {
-    const spans: any[][][] = [];
+  ): RawInferenceResult {
+    const spans: RawInferenceResult = [];
 
     for (let batch = 0; batch < batchSize; batch++) {
       spans.push([]);
@@ -116,20 +118,118 @@ export class SpanDecoder extends BaseDecoder {
         startToken < batchWordsStartIdx[batch].length &&
         endToken < batchWordsEndIdx[batch].length
       ) {
-        let globalBatch = batchIds[batch];
-        let startIdx = batchWordsStartIdx[batch][startToken];
-        let endIdx = batchWordsEndIdx[batch][endToken];
-        let spanText = texts[globalBatch].slice(startIdx, endIdx);
+        let globalBatch: number = batchIds[batch];
+        let startIdx: number = batchWordsStartIdx[batch][startToken];
+        let endIdx: number = batchWordsEndIdx[batch][endToken];
+        let spanText: string = texts[globalBatch].slice(startIdx, endIdx);
         spans[batch].push([spanText, startIdx, endIdx, idToClass[entity + 1], prob]);
       }
     });
-    const allSelectedSpans: number[][][] = [];
+    const allSelectedSpans: RawInferenceResult = [];
 
     spans.forEach((resI, id) => {
       const selectedSpans = this.greedySearch(resI, flatNer, multiLabel);
       allSelectedSpans.push(selectedSpans);
     });
 
-    return spans;
+    return allSelectedSpans;
+  }
+}
+
+// TokenDecoder subclass
+export class TokenDecoder extends BaseDecoder {
+  decode(
+    batchSize: number,
+    inputLength: number,
+    numEntities: number,
+    texts: string[],
+    batchIds: number[],
+    batchWordsStartIdx: number[][],
+    batchWordsEndIdx: number[][],
+    idToClass: Record<number, string>,
+    modelOutput: number[],
+    flatNer: boolean = false,
+    threshold: number = 0.5,
+    multiLabel: boolean = false,
+  ): RawInferenceResult {
+    const positionPadding = batchSize * inputLength * numEntities;
+    const batchPadding = inputLength * numEntities;
+    const tokenPadding = numEntities;
+
+    let selectedStarts: any = [];
+    let selectedEnds: any = [];
+    let insideScore: number[][][] = [];
+
+    for (let id = 0; id < batchSize; id++) {
+      selectedStarts.push([]);
+      selectedEnds.push([]);
+      let batches: number[][] = [];
+      for (let j = 0; j < inputLength; j++) {
+        let sequence: number[] = Array(numEntities).fill(0);
+        batches.push(sequence);
+      }
+      insideScore.push(batches);
+    }
+
+    modelOutput.forEach((value, id) => {
+      let position = Math.floor(id / positionPadding);
+      let batch = Math.floor(id / batchPadding) % batchSize;
+      let token = Math.floor(id / tokenPadding) % inputLength;
+      let entity = id % numEntities;
+
+      let prob = sigmoid(value);
+
+      if (prob >= threshold && token < batchWordsEndIdx[batch].length) {
+        if (position == 0) {
+          selectedStarts[batch].push([token, entity]);
+        } else if (position == 1) {
+          selectedEnds[batch].push([token, entity]);
+        }
+      }
+      if (position == 2) {
+        insideScore[batch][token][entity] = prob;
+      }
+    });
+
+    const spans: RawInferenceResult = [];
+
+    for (let batch = 0; batch < batchSize; batch++) {
+      let batchSpans: Spans = [];
+
+      for (let [start, clsSt] of selectedStarts[batch]) {
+        for (let [end, clsEd] of selectedEnds[batch]) {
+          if (end >= start && clsSt === clsEd) {
+            // Calculate the inside span scores
+            const insideSpanScores = insideScore[batch]
+              .slice(start, end + 1)
+              .map((tokenScores) => tokenScores[clsSt]);
+
+            // Check if all scores within the span are above the threshold
+            if (insideSpanScores.some((score) => score < threshold)) continue;
+
+            // Calculate mean span score
+            const spanScore = insideSpanScores.reduce((a, b) => a + b, 0) / insideSpanScores.length;
+
+            // Extract the start and end indices and the text for the span
+            let startIdx = batchWordsStartIdx[batch][start];
+            let endIdx = batchWordsEndIdx[batch][end];
+            let spanText = texts[batchIds[batch]].slice(startIdx, endIdx);
+
+            // Push the span with its score and class
+            batchSpans.push([spanText, startIdx, endIdx, idToClass[clsSt + 1], spanScore]);
+          }
+        }
+      }
+      spans.push(batchSpans);
+    }
+
+    const allSelectedSpans: RawInferenceResult = [];
+
+    spans.forEach((resI, id) => {
+      const selectedSpans = this.greedySearch(resI, flatNer, multiLabel);
+      allSelectedSpans.push(selectedSpans);
+    });
+
+    return allSelectedSpans;
   }
 }
