@@ -44,7 +44,11 @@ export class Gliner {
     env.allowLocalModels = config.transformersSettings?.allowLocalModels ?? false;
     env.useBrowserCache = config.transformersSettings?.useBrowserCache ?? false;
 
-    this.config = { ...config, maxWidth: config.maxWidth || 12, modelType: config.modelType || "span-level" };
+    this.config = {
+      ...config,
+      maxWidth: config.maxWidth || 12,
+      modelType: config.modelType || "span-level",
+    };
   }
 
   async initialize(): Promise<void> {
@@ -62,8 +66,7 @@ export class Gliner {
       const decoder = new SpanDecoder({ max_width: maxWidth });
 
       this.model = new SpanModel({ max_width: maxWidth }, processor, decoder, onnxWrapper);
-    }
-    else {
+    } else {
       console.log("Initializing Token-level Model...");
 
       const processor = new TokenProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
@@ -79,7 +82,7 @@ export class Gliner {
     entities,
     flatNer = true,
     threshold = 0.5,
-    multiLabel = false
+    multiLabel = false,
   }: IInference): Promise<InferenceResultMultiple> {
     if (!this.model) {
       throw new Error("Model is not initialized. Call initialize() first.");

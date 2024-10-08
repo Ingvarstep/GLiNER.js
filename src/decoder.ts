@@ -57,7 +57,7 @@ abstract class BaseDecoder {
 
     const newList: Spans = [];
     // Sort spans by their score (last element) in descending order
-    const spanProb: Spans = spans.slice().sort((a, b) => b[b.length-1] - a[a.length - 1]);
+    const spanProb: Spans = spans.slice().sort((a, b) => b[b.length - 1] - a[a.length - 1]);
 
     for (let i = 0; i < spanProb.length; i++) {
       const b = spanProb[i];
@@ -77,7 +77,7 @@ abstract class BaseDecoder {
     // Sort newList by start position (second element) for correct ordering
     return newList.sort((a, b) => a[1] - b[1]);
   }
-};
+}
 // SpanDecoder subclass
 export class SpanDecoder extends BaseDecoder {
   decode(
@@ -95,7 +95,7 @@ export class SpanDecoder extends BaseDecoder {
     threshold: number = 0.5,
     multiLabel: boolean = false,
   ): RawInferenceResult {
-    const spans: RawInferenceResult= [];
+    const spans: RawInferenceResult = [];
 
     for (let batch = 0; batch < batchSize; batch++) {
       spans.push([]);
@@ -152,7 +152,6 @@ export class TokenDecoder extends BaseDecoder {
     threshold: number = 0.5,
     multiLabel: boolean = false,
   ): RawInferenceResult {
-
     const positionPadding = batchSize * inputLength * numEntities;
     const batchPadding = inputLength * numEntities;
     const tokenPadding = numEntities;
@@ -203,10 +202,10 @@ export class TokenDecoder extends BaseDecoder {
             // Calculate the inside span scores
             const insideSpanScores = insideScore[batch]
               .slice(start, end + 1)
-              .map(tokenScores => tokenScores[clsSt]);
+              .map((tokenScores) => tokenScores[clsSt]);
 
             // Check if all scores within the span are above the threshold
-            if (insideSpanScores.some(score => score < threshold)) continue;
+            if (insideSpanScores.some((score) => score < threshold)) continue;
 
             // Calculate mean span score
             const spanScore = insideSpanScores.reduce((a, b) => a + b, 0) / insideSpanScores.length;

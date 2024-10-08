@@ -13,7 +13,7 @@ export class Model {
   async initialize(): Promise<void> {
     await this.onnxWrapper.init();
   }
-};
+}
 
 export class SpanModel extends Model {
   prepareInputs(batch: any): Record<string, ort.Tensor> {
@@ -91,18 +91,22 @@ export class SpanModel extends Model {
     batch_size: number = 4,
     max_words: number = 512,
   ): Promise<RawInferenceResult> {
-    const { idToClass }: { 
-          idToClass: Record<number, string> } = this.processor.createMappings(entities);
+    const {
+      idToClass,
+    }: {
+      idToClass: Record<number, string>;
+    } = this.processor.createMappings(entities);
     let batchIds: number[] = [];
     let batchTokens: string[][] = [];
     let batchWordsStartIdx: number[][] = [];
     let batchWordsEndIdx: number[][] = [];
     texts.forEach((text, id) => {
-      let [tokens, wordsStartIdx, wordsEndIdx]: [string[], number[], number[]] = this.processor.tokenizeText(text);
+      let [tokens, wordsStartIdx, wordsEndIdx]: [string[], number[], number[]] =
+        this.processor.tokenizeText(text);
       let num_sub_batches: number = Math.ceil(tokens.length / max_words);
 
       for (let i = 0; i < num_sub_batches; i++) {
-        let start:number = i * max_words;
+        let start: number = i * max_words;
         let end: number = Math.min((i + 1) * max_words, tokens.length);
 
         batchIds.push(id);
@@ -128,24 +132,18 @@ export class SpanModel extends Model {
       let currBatchWordsEndIdx: number[][] = batchWordsEndIdx.slice(start, end);
       let currBatchIds: number[] = batchIds.slice(start, end);
 
-      let [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] = this.processor.prepareTextInputs(
-        currBatchTokens,
-        entities,
-      );
+      let [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] =
+        this.processor.prepareTextInputs(currBatchTokens, entities);
 
-      let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] = this.processor.encodeInputs(
-        inputTokens,
-        promptLengths,
-      );
+      let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] =
+        this.processor.encodeInputs(inputTokens, promptLengths);
 
       inputsIds = this.processor.padArray(inputsIds);
       attentionMasks = this.processor.padArray(attentionMasks);
       wordsMasks = this.processor.padArray(wordsMasks);
 
-      let { spanIdxs, spanMasks }: { spanIdxs: number[][][]; spanMasks: boolean[][] } = this.processor.prepareSpans(
-        currBatchTokens,
-        this.config["max_width"],
-      );
+      let { spanIdxs, spanMasks }: { spanIdxs: number[][][]; spanMasks: boolean[][] } =
+        this.processor.prepareSpans(currBatchTokens, this.config["max_width"]);
 
       spanIdxs = this.processor.padArray(spanIdxs, 3);
       spanMasks = this.processor.padArray(spanMasks);
@@ -164,7 +162,7 @@ export class SpanModel extends Model {
       };
 
       let feeds: Record<string, ort.Tensor> = this.prepareInputs(batch);
-      const results: Record<string, ort.Tensor>  = await this.onnxWrapper.run(feeds);
+      const results: Record<string, ort.Tensor> = await this.onnxWrapper.run(feeds);
       const modelOutput: number[] = results["logits"].data;
       // const modelOutput = results.logits.data as number[];
 
@@ -267,18 +265,22 @@ export class TokenModel extends Model {
     batch_size: number = 4,
     max_words: number = 512,
   ): Promise<RawInferenceResult> {
-    const { idToClass }: { 
-          idToClass: Record<number, string> } = this.processor.createMappings(entities);
+    const {
+      idToClass,
+    }: {
+      idToClass: Record<number, string>;
+    } = this.processor.createMappings(entities);
     let batchIds: number[] = [];
     let batchTokens: string[][] = [];
     let batchWordsStartIdx: number[][] = [];
     let batchWordsEndIdx: number[][] = [];
     texts.forEach((text, id) => {
-      let [tokens, wordsStartIdx, wordsEndIdx]: [string[], number[], number[]] = this.processor.tokenizeText(text);
+      let [tokens, wordsStartIdx, wordsEndIdx]: [string[], number[], number[]] =
+        this.processor.tokenizeText(text);
       let num_sub_batches: number = Math.ceil(tokens.length / max_words);
 
       for (let i = 0; i < num_sub_batches; i++) {
-        let start:number = i * max_words;
+        let start: number = i * max_words;
         let end: number = Math.min((i + 1) * max_words, tokens.length);
 
         batchIds.push(id);
@@ -304,15 +306,11 @@ export class TokenModel extends Model {
       let currBatchWordsEndIdx: number[][] = batchWordsEndIdx.slice(start, end);
       let currBatchIds: number[] = batchIds.slice(start, end);
 
-      let [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] = this.processor.prepareTextInputs(
-        currBatchTokens,
-        entities,
-      );
+      let [inputTokens, textLengths, promptLengths]: [string[][], number[], number[]] =
+        this.processor.prepareTextInputs(currBatchTokens, entities);
 
-      let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] = this.processor.encodeInputs(
-        inputTokens,
-        promptLengths,
-      );
+      let [inputsIds, attentionMasks, wordsMasks]: [number[][], number[][], number[][]] =
+        this.processor.encodeInputs(inputTokens, promptLengths);
 
       inputsIds = this.processor.padArray(inputsIds);
       attentionMasks = this.processor.padArray(attentionMasks);
@@ -330,7 +328,7 @@ export class TokenModel extends Model {
       };
 
       let feeds: Record<string, ort.Tensor> = this.prepareInputs(batch);
-      const results: Record<string, ort.Tensor>  = await this.onnxWrapper.run(feeds);
+      const results: Record<string, ort.Tensor> = await this.onnxWrapper.run(feeds);
       const modelOutput: number[] = results["logits"].data;
       // const modelOutput = results.logits.data as number[];
 
