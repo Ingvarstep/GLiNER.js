@@ -6,14 +6,15 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "node --loader ts-node/esm src/main.ts"
+    "dev": "tsx src/main.ts"
   },
   "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "gliner": "file:../../"
+    "gliner": "file:../../",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",

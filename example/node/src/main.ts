@@ -8,7 +8,6 @@ async function main(): Promise<void> {
     tokenizerPath: "onnx-community/gliner_small-v2",
     onnxSettings: {
       modelPath: "./models/model.onnx",
-      executionContext: "node",
     },
     maxWidth: 12,
   });
