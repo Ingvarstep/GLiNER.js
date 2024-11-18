@@ -1,13 +1,14 @@
-import { Gliner } from "../../src";
-// import { Gliner } from "../../dist";
+// import { Gliner } from "../../../src";
+// import { Gliner, ONXXNodeWrapper } from "../../../";
+import { Gliner } from "gliner/node";
+// import { Gliner } from "../../../dist";
 
 async function main(): Promise<void> {
   const gliner = new Gliner({
     tokenizerPath: "onnx-community/gliner_small-v2",
     onnxSettings: {
-      modelPath: "public/model.onnx",
-      executionProvider: "cpu",
-      multiThread: true,
+      modelPath: "./models/model.onnx",
+      executionContext: "node",
     },
     maxWidth: 12,
   });

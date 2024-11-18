@@ -1,41 +1,15 @@
 import { AutoTokenizer, env } from "@xenova/transformers";
-import { SpanModel, TokenModel } from "./model";
-import { WhitespaceTokenSplitter, SpanProcessor, TokenProcessor } from "./processor";
-import { SpanDecoder, TokenDecoder } from "./decoder";
-import { IONNXSettings, ONNXWrapper } from "./ONNXWrapper";
-
-export interface ITransformersSettings {
-  allowLocalModels: boolean;
-  useBrowserCache: boolean;
-}
-
-export interface InitConfig {
-  tokenizerPath: string;
-  onnxSettings: IONNXSettings;
-  transformersSettings?: ITransformersSettings;
-  maxWidth?: number;
-  modelType?: string;
-}
-
-export interface IInference {
-  texts: string[];
-  entities: string[];
-  flatNer?: boolean;
-  threshold?: number;
-  multiLabel?: boolean;
-}
-
-export type RawInferenceResult = [string, number, number, string, number][][];
-
-export interface IEntityResult {
-  spanText: string;
-  start: number;
-  end: number;
-  label: string;
-  score: number;
-}
-export type InferenceResultSingle = IEntityResult[];
-export type InferenceResultMultiple = InferenceResultSingle[];
+import { SpanModel, TokenModel } from "../lib/model";
+import { WhitespaceTokenSplitter, SpanProcessor, TokenProcessor } from "../lib/processor";
+import { SpanDecoder, TokenDecoder } from "../lib/decoder";
+import { ONNXNodeWrapper } from "./ONNXNodeWrapper";
+import {
+  IEntityResult,
+  IInference,
+  InferenceResultMultiple,
+  InitConfig,
+  RawInferenceResult,
+} from "../interfaces";
 
 export class Gliner {
   private model: SpanModel | TokenModel | null = null;
@@ -56,9 +30,10 @@ export class Gliner {
 
     const tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath);
     console.log("Tokenizer loaded.");
-    const onnxWrapper = new ONNXWrapper(onnxSettings);
 
     const wordSplitter = new WhitespaceTokenSplitter();
+
+    const onnxWrapper = new ONNXNodeWrapper(onnxSettings);
 
     if (this.config.modelType == "span-level") {
       console.log("Initializing Span-level Model...");

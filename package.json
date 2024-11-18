@@ -5,6 +5,16 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    },
+    "./node": {
+      "require": "./dist/node/index.cjs",
+      "import": "./dist/node/index.mjs"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Ingvarstep/GLiNER.js"
@@ -23,7 +33,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup --format cjs,esm --dts",
     "changeset": "changeset",
     "release": "changeset publish",
     "version": "changeset version",
@@ -32,15 +42,20 @@
     "lint": "prettier --check src/**/*.ts",
     "lint:fix": "prettier --write src/**/*.ts"
   },
+  "peerDependencies": {
+    "onnxruntime-node": "^1.19.2"
+  },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
+    "onnxruntime-common": "^1.19.2",
     "onnxruntime-web": "^1.19.2"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.8",
     "prettier": "^3.3.3",
     "tsup": "^8.2.4",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "cross-env": "^7.0.3"
   },
   "private": false
 }

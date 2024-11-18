@@ -1,17 +1,35 @@
-// tsup.config.ts
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
-export default defineConfig({
-  entry: ['src/index.ts'],  // Entry file(s)
-  format: ['cjs', 'esm'],   // Output both CommonJS and ESM formats
-  dts: true,                // Generate TypeScript declarations
-  esbuildOptions(options, context) {
-    if (context.format === 'esm') {
-      // Modify the output for ES modules to use .mjs extension
-      options.outExtension = { '.js': '.mjs' };
-    } else if (context.format === 'cjs') {
-      // Modify the output for CommonJS to use .cjs extension (optional)
-      options.outExtension = { '.js': '.cjs' };
-    }
+export default defineConfig([
+  // Web Build
+  {
+    entry: ["src/web/index.ts"], // Entry for the web build
+    format: ["cjs", "esm"], // Output formats
+    dts: true, // Generate TypeScript declarations
+    outDir: "dist", // Output directory for web
+    treeshake: true,
+    esbuildOptions(options, context) {
+      if (context.format === "esm") {
+        options.outExtension = { ".js": ".mjs" };
+      } else if (context.format === "cjs") {
+        options.outExtension = { ".js": ".cjs" };
+      }
+    },
   },
-});
+  // Node Build
+  {
+    entry: ["src/node/index.ts"], // Entry for the Node.js build
+    format: ["cjs", "esm"], // Output formats
+    dts: true, // Generate TypeScript declarations
+    outDir: "dist/node", // Output directory for Node.js
+    external: ["onnxruntime-web"], // Exclude web-specific runtime
+    treeshake: true,
+    esbuildOptions(options, context) {
+      if (context.format === "esm") {
+        options.outExtension = { ".js": ".mjs" };
+      } else if (context.format === "cjs") {
+        options.outExtension = { ".js": ".cjs" };
+      }
+    },
+  },
+]);

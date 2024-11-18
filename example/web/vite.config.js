@@ -18,6 +18,9 @@ export default defineConfig({
   ],
   build: {
     target: "esnext",
+    rollupOptions: {
+      external: ["onnxruntime-node"], // Externalize the Node.js-specific package
+    },
   },
   server: {
     headers: {
@@ -27,5 +30,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["onnxruntime-web"], // Make sure 'onnxruntime-web' is handled properly by Vite
+    exclude: ["onnxruntime-node"],
   },
 });
