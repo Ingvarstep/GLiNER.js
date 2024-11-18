@@ -19,12 +19,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "src",
-    "old/main.js",
-    "old/model.js",
-    "old/processor.js",
-    "old/decoder.js",
-    "example/src/main.ts"
-  ]
+  "include": ["src", "example/web/src/main.ts", "src/**/*.ts", "src/**/*.d.ts", "src/types.d.ts"]
 }

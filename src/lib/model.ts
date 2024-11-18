@@ -1,6 +1,6 @@
 import ort from "onnxruntime-web";
-import { ONNXWrapper } from "./ONNXWrapper";
-import { RawInferenceResult } from "./Gliner";
+import { RawInferenceResult } from "../web/Gliner";
+import { ONNXWrapper } from "../interfaces";
 
 export class Model {
   constructor(
@@ -163,7 +163,7 @@ export class SpanModel extends Model {
 
       let feeds: Record<string, ort.Tensor> = this.prepareInputs(batch);
       const results: Record<string, ort.Tensor> = await this.onnxWrapper.run(feeds);
-      const modelOutput: number[] = results["logits"].data;
+      const modelOutput = results["logits"].data;
       // const modelOutput = results.logits.data as number[];
 
       const batchSize: number = batch.batchTokens.length;
@@ -329,7 +329,7 @@ export class TokenModel extends Model {
 
       let feeds: Record<string, ort.Tensor> = this.prepareInputs(batch);
       const results: Record<string, ort.Tensor> = await this.onnxWrapper.run(feeds);
-      const modelOutput: number[] = results["logits"].data;
+      const modelOutput = results["logits"].data;
       // const modelOutput = results.logits.data as number[];
 
       const batchSize: number = batch.batchTokens.length;

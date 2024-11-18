@@ -1,41 +1,26 @@
 import ort_CPU, { InferenceSession } from "onnxruntime-web";
 import ort_WEBGPU from "onnxruntime-web/webgpu";
 import ort_WEBGL from "onnxruntime-web/webgl";
-
-type OrtLib =
-  | typeof import("onnxruntime-web")
-  | typeof import("onnxruntime-web/webgpu")
-  | typeof import("onnxruntime-web/webgl");
-
-export type ExecutionProvider = "cpu" | "wasm" | "webgpu" | "webgl";
-
-// export type ExecutionContext = "web"
-
-export interface IONNXSettings {
-  modelPath: string | Uint8Array | ArrayBufferLike;
-  // executionContext: ExecutionContext;
-  executionProvider?: ExecutionProvider;
-  wasmPaths?: string;
-  multiThread?: boolean;
-  maxThreads?: number;
-  fetchBinary?: boolean;
-}
+import { IONNXWebSettings, IONNXWebWrapper, WebOrtLib } from "../interfaces";
 
 // NOTE: Version needs to match installed package!
 const ONNX_WASM_CDN_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
 const DEFAULT_WASM_PATHS = ONNX_WASM_CDN_URL;
 
-export class ONNXWrapper {
-  public ort: OrtLib = ort_CPU;
+export class ONNXWebWrapper implements IONNXWebWrapper {
+  public ort: WebOrtLib = ort_CPU;
   private session:
     | ort_CPU.InferenceSession
     | ort_WEBGPU.InferenceSession
     | ort_WEBGL.InferenceSession
     | null = null;
 
-  constructor(public settings: IONNXSettings) {
-    const { executionProvider, wasmPaths } = settings;
-    switch (executionProvider) {
+  constructor(public settings: IONNXWebSettings) {
+    const { executionProvider, wasmPaths = DEFAULT_WASM_PATHS } = settings;
+    if (!executionProvider) {
+      this.settings.executionProvider = "webgpu";
+    }
+    switch (this.settings.executionProvider) {
       case "cpu":
       case "wasm":
         break;
@@ -48,7 +33,7 @@ export class ONNXWrapper {
       default:
         throw new Error(`ONNXWrapper: Invalid execution provider: '${executionProvider}'`);
     }
-    this.ort.env.wasm.wasmPaths = wasmPaths ?? DEFAULT_WASM_PATHS;
+    this.ort.env.wasm.wasmPaths = wasmPaths;
   }
 
   public async init() {
@@ -71,7 +56,8 @@ export class ONNXWrapper {
           this.ort.env.wasm.numThreads = maxThreads;
         }
       }
-
+      console.log("ONNXWrapper: Initializing session with exeuction provider:", executionProvider);
+      console.log(this.settings);
       // @ts-ignore
       this.session = await this.ort.InferenceSession.create(modelPath, {
         executionProviders: [executionProvider],

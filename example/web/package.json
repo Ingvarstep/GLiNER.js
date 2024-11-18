@@ -1,5 +1,5 @@
 {
-  "name": "example-application",
+  "name": "example-application-web",
   "private": true,
   "version": "0.0.1",
   "description": "Application to demonstrate the usage of the GLiNER inference engine",
@@ -8,6 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
+  },
+  "dependencies": {
+    "gliner": "file:../../"
   },
   "devDependencies": {
     "prettier": "^3.3.3",
