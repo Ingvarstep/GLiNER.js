@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.18
+
+### Patch Changes
+
+- f9d1180: added node support
+
 ## 0.0.17
 
 ### Patch Changes
