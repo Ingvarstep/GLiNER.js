@@ -1,5 +1,11 @@
 # gliner
 
+## 0.0.19
+
+### Patch Changes
+
+- 4528498: Fixate onnx versions for stability
+
 ## 0.0.18
 
 ### Patch Changes
