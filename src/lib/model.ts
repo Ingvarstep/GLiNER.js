@@ -1,6 +1,5 @@
 import ort from "onnxruntime-web";
-import { RawInferenceResult } from "../web/Gliner";
-import { ONNXWrapper } from "../interfaces";
+import { RawInferenceResult, ONNXWrapper } from "../interfaces";
 
 export class Model {
   constructor(

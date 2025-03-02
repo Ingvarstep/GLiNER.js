@@ -29,20 +29,20 @@ export class Gliner {
     const { tokenizerPath, onnxSettings, maxWidth } = this.config;
 
     const tokenizer = await AutoTokenizer.from_pretrained(tokenizerPath);
-    console.log("Tokenizer loaded.");
+    // console.log("Tokenizer loaded.");
 
     const wordSplitter = new WhitespaceTokenSplitter();
 
     const onnxWrapper = new ONNXNodeWrapper(onnxSettings);
 
     if (this.config.modelType == "span-level") {
-      console.log("Initializing Span-level Model...");
+      // console.log("Initializing Span-level Model...");
       const processor = new SpanProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
       const decoder = new SpanDecoder({ max_width: maxWidth });
 
       this.model = new SpanModel({ max_width: maxWidth }, processor, decoder, onnxWrapper);
     } else {
-      console.log("Initializing Token-level Model...");
+      // console.log("Initializing Token-level Model...");
 
       const processor = new TokenProcessor({ max_width: maxWidth }, tokenizer, wordSplitter);
       const decoder = new TokenDecoder({ max_width: maxWidth });

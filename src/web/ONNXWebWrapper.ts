@@ -56,8 +56,7 @@ export class ONNXWebWrapper implements IONNXWebWrapper {
           this.ort.env.wasm.numThreads = maxThreads;
         }
       }
-      console.log("ONNXWrapper: Initializing session with exeuction provider:", executionProvider);
-      console.log(this.settings);
+
       // @ts-ignore
       this.session = await this.ort.InferenceSession.create(modelPath, {
         executionProviders: [executionProvider],
