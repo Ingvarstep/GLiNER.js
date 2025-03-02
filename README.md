@@ -35,34 +35,59 @@ npm install gliner
 const gliner = new Gliner({
   tokenizerPath: "onnx-community/gliner_small-v2",
   onnxSettings: {
-    modelPath: "public/model.onnx",
-    executionContext: "web",
-    executionProvider: "webgpu",
+    modelPath: "public/model.onnx", // Can be a string path or Uint8Array/ArrayBufferLike
+    executionProvider: "webgpu", // Optional: "cpu", "wasm", "webgpu", or "webgl"
+    wasmPaths: "path/to/wasm", // Optional: path to WASM binaries
+    multiThread: true, // Optional: enable multi-threading (for wasm/cpu providers)
+    maxThreads: 4, // Optional: specify number of threads (for wasm/cpu providers)
+    fetchBinary: true, // Optional: prefetch binary from wasmPaths
   },
-  maxWidth: 12,
+  transformersSettings: {
+    // Optional
+    allowLocalModels: true,
+    useBrowserCache: true,
+  },
+  maxWidth: 12, // Optional
+  modelType: "gliner", // Optional
 });
 
 await gliner.initialize();
 
-const input_text = "Your input text here";
-const texts = [input_text];
+const texts = ["Your input text here"];
 const entities = ["city", "country", "person"];
-const threshold = 0.1;
+const options = {
+  flatNer: false, // Optional
+  threshold: 0.1, // Optional
+  multiLabel: false, // Optional
+};
 
-const decoded = await gliner.inference({ texts, entities, threshold });
-console.log(decoded);
+const results = await gliner.inference({
+  texts,
+  entities,
+  ...options,
+});
+console.log(results);
 ```
 
-### Advanced Usage
+### Response Format
 
-#### ONNX settings API
+The inference results will be returned in the following format:
 
-- modelPath: can be either a URL to a local model as in the basic example, or it can also be the Model itself as an array of binary data.
-- executionProvider: these are the same providers that ONNX web supports, currently we allow `webgpu` (recommended), `cpu`, `wasm`, `webgl` but more can be added
-- wasmPaths: Path to the wasm binaries, this can be either a URL to the binaries like a CDN url, or a local path to a folder with the binaries.
-- multiThread: wether to multithread at all, only relevent for wasm and cpu exeuction providers.
-- multiThread: When choosing the wasm or cpu provider, multiThread will allow you to specify the number of cores you want to use.
-- fetchBinary: will prefetch the binary from the default or provided wasm paths
+```javascript
+// For a single text input:
+[
+  {
+    spanText: "New York", // The extracted entity text
+    start: 10, // Start character position
+    end: 18, // End character position
+    label: "city", // Entity type
+    score: 0.95, // Confidence score
+  },
+  // ... more entities
+];
+
+// For multiple text inputs, you'll get an array of arrays
+```
 
 ## 🛠 Setup & Model Preparation
 
